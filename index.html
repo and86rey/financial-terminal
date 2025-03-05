@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financial Data Terminal</title>
-    <link rel="stylesheet" href="styles.css"> <!-- No leading slash or dot -->
+    <link rel="stylesheet" href="styles.css">
     <style>
         body { background: #000; color: #fff; font-family: Arial, sans-serif; }
         h1 { color: #f5a623; text-align: center; }
@@ -22,8 +22,10 @@
             <div id="financialData"></div>
             <h2>Market Risk Metrics (Last 252 Trading Days)</h2>
             <div class="chart-controls">
-                <button onclick="showLastMonth()">Last Month</button>
-                <button onclick="showFullYear()">Full Year</button>
+                <button onclick="setDays(30)">Last Month</button>
+                <button onclick="setDays(252)">Full Year</button>
+                <input type="range" id="dayRange" min="7" max="252" value="30" step="1" oninput="updateDays(this.value)">
+                <span id="dayCount">30 days</span>
             </div>
             <div class="graph-grid">
                 <div class="graph-section">
@@ -46,7 +48,7 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="script.js"></script> <!-- No leading slash or dot -->
+    <script src="script.js"></script>
     <script>
         console.log('HTML loaded. If charts don’t appear, check script.js or FMP API key.');
     </script>
