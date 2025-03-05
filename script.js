@@ -4,6 +4,7 @@ let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
 let shortMA = [], longMA = [];
 let currentDays = 30;
+let pyScriptReady = false;
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
@@ -191,6 +192,19 @@ function updateCharts() {
     });
 }
 
+async function waitForPyScript() {
+    if (!window.pyodide) {
+        return new Promise((resolve) => {
+            window.addEventListener('py:ready', () => {
+                console.log('PyScript ready');
+                pyScriptReady = true;
+                resolve();
+            }, { once: true });
+        });
+    }
+    return Promise.resolve();
+}
+
 async function fetchData() {
     const query = document.getElementById('searchInput').value.trim();
     if (!query) {
@@ -202,6 +216,12 @@ async function fetchData() {
 
     try {
         updateLedger(query);
+
+        // Wait for PyScript if not ready
+        if (!pyScriptReady) {
+            console.log('Waiting for PyScript to initialize...');
+            await waitForPyScript();
+        }
 
         const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
         const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`;
@@ -233,6 +253,10 @@ async function fetchData() {
 
         fullDates = limitedData.map(d => d.date);
         fullPrices = limitedData.map(d => d.close);
+
+        if (typeof window.processMetrics !== 'function') {
+            throw new Error('window.processMetrics is still not defined after PyScript load');
+        }
 
         const [rollingVaR, rollingVolatility, shortMAData, longMAData] = await window.processMetrics(fullPrices);
         fullVaR = rollingVaR;
