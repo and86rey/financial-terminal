@@ -55,5 +55,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="script.js"></script>
     <py-script src="./metrics.py"></py-script>
+    <script>
+        // Wait for PyScript to load
+        window.addEventListener('py:ready', () => {
+            console.log('PyScript loaded');
+        });
+        console.log('HTML loaded');
+    </script>
 </body>
 </html>
