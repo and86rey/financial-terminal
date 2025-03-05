@@ -33,16 +33,16 @@ function calculateRollingVaR(returns, windowSize = 20) {
 }
 
 function calculateRollingVolatility(returns, windowSize = 20) {
-    const volValues = [];
+    const volValues = []; // Fixed typo: was 'varValues'
     for (let i = 0; i < returns.length; i++) {
         const start = Math.max(0, i - windowSize + 1);
         const window = returns.slice(start, i + 1);
         if (window.length < 5) {
-            varValues.push(0);
+            volValues.push(0); // Fixed typo
         } else {
             const mean = window.reduce((a, b) => a + b, 0) / window.length;
             const variance = window.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / window.length;
-            volValues.push(Math.sqrt(variance));
+            volValues.push(Math.sqrt(variance)); // Fixed typo
         }
     }
     return volValues;
@@ -58,7 +58,7 @@ function updateCharts() {
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    const tickInterval = currentView === 'full' ? 25 : 2; // ~10 ticks for full, ~10 for month
+    const tickInterval = currentView === 'full' ? 25 : 2; // ~10 ticks
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
     if (priceChart) priceChart.destroy();
@@ -85,7 +85,7 @@ function updateCharts() {
                         maxTicksLimit: 12,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 14 },
+                        font: { size: 14, family: 'Arial' },
                         maxRotation: 45,
                         minRotation: 45
                     },
@@ -99,7 +99,7 @@ function updateCharts() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }, // Title in HTML
+                legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
             }
         }
@@ -112,7 +112,7 @@ function updateCharts() {
             datasets: [{
                 label: 'VaR',
                 data: visibleVaR,
-                borderColor: '#ff9500',
+                borderColor: '#f5a623',
                 fill: false,
                 pointRadius: 0,
                 borderWidth: 2
@@ -125,7 +125,7 @@ function updateCharts() {
                         maxTicksLimit: 12,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 14 },
+                        font: { size: 14, family: 'Arial' },
                         maxRotation: 45,
                         minRotation: 45
                     },
@@ -165,7 +165,7 @@ function updateCharts() {
                         maxTicksLimit: 12,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 14 },
+                        font: { size: 14, family: 'Arial' },
                         maxRotation: 45,
                         minRotation: 45
                     },
