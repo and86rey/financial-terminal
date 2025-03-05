@@ -17,24 +17,18 @@ async function waitForPyScript() {
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
-    requestLedger.push({ query, timestamp });
+    requestLedger = [{ query, timestamp }]; // Keep only latest entry
     localStorage.setItem('requestLedger', JSON.stringify(requestLedger));
     displayLedger();
 }
 
 function displayLedger() {
-    const ledgerList = document.getElementById('ledgerList');
-    if (ledgerList) {
-        ledgerList.innerHTML = requestLedger.map(r => `<li>${r.query} - ${r.timestamp}</li>`).join('');
+    const ledgerEntry = document.getElementById('ledgerEntry');
+    if (ledgerEntry) {
+        ledgerEntry.textContent = requestLedger.length ? `${requestLedger[0].query} - ${requestLedger[0].timestamp}` : '';
     } else {
-        console.error('Ledger list element not found');
+        console.error('Ledger entry element not found');
     }
-}
-
-function normalizeData(data) {
-    const min = Math.min(...data.filter(v => v !== 0));
-    const max = Math.max(...data.filter(v => v !== 0));
-    return data.map(v => v === 0 ? 0 : (v - min) / (max - min)); // Relative 0-1 scale
 }
 
 function updateCharts() {
@@ -64,161 +58,153 @@ function updateCharts() {
     const tickInterval = Math.max(1, Math.floor(currentDays / 10));
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
-    const normPrices = normalizeData(visiblePrices);
-    const normVaR = normalizeData(visibleVaR);
-    const normVolatility = normalizeData(visibleVolatility);
-    const normShortMA = normalizeData(visibleShortMA);
-    const normLongMA = normalizeData(visibleLongMA);
-
     if (priceChart) priceChart.destroy();
     if (varChart) varChart.destroy();
     if (volatilityChart) volatilityChart.destroy();
 
-    priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: visibleDates,
-            datasets: [
-                {
-                    label: 'Price',
-                    data: normPrices,
-                    borderColor: '#fff',
+    try {
+        priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: visibleDates,
+                datasets: [
+                    {
+                        label: 'Price',
+                        data: visiblePrices,
+                        borderColor: '#fff',
+                        fill: false,
+                        pointRadius: 2,
+                        borderWidth: 2
+                    },
+                    {
+                        label: '20-day MA',
+                        data: visibleShortMA,
+                        borderColor: '#f5a623',
+                        fill: false,
+                        pointRadius: 0,
+                        borderWidth: 1,
+                        borderDash: [5, 5]
+                    },
+                    {
+                        label: '50-day MA',
+                        data: visibleLongMA,
+                        borderColor: '#00cc00',
+                        fill: false,
+                        pointRadius: 0,
+                        borderWidth: 1,
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 10,
+                            callback: (value, index) => ticks[index] || '',
+                            color: '#fff',
+                            font: { size: 12, family: 'Arial' },
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
+                    },
+                    y: {
+                        ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
+                        title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: true, labels: { color: '#fff', font: { size: 12 } } },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        });
+
+        varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: visibleDates,
+                datasets: [{
+                    label: 'VaR',
+                    data: visibleVaR,
+                    borderColor: '#f5a623',
                     fill: false,
                     pointRadius: 2,
                     borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 10,
+                            callback: (value, index) => ticks[index] || '',
+                            color: '#fff',
+                            font: { size: 12, family: 'Arial' },
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
+                    },
+                    y: {
+                        ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
+                        title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } }
+                    }
                 },
-                {
-                    label: '20-day MA',
-                    data: normShortMA,
-                    borderColor: '#f5a623',
-                    fill: false,
-                    pointRadius: 0,
-                    borderWidth: 1,
-                    borderDash: [5, 5]
-                },
-                {
-                    label: '50-day MA',
-                    data: normLongMA,
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        });
+
+        volatilityChart = new Chart(document.getElementById('volatilityChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: visibleDates,
+                datasets: [{
+                    label: 'Volatility',
+                    data: visibleVolatility,
                     borderColor: '#00cc00',
                     fill: false,
-                    pointRadius: 0,
-                    borderWidth: 1,
-                    borderDash: [5, 5]
-                }
-            ]
-        },
-        options: {
-            scales: {
-                x: {
-                    ticks: {
-                        maxTicksLimit: 10,
-                        callback: (value, index) => ticks[index] || '',
-                        color: '#fff',
-                        font: { size: 12, family: 'Arial' },
-                        maxRotation: 45,
-                        minRotation: 45
-                    },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
-                },
-                y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `${(value * 100).toFixed(0)}%` },
-                    title: { display: true, text: 'Relative Price', color: '#fff', font: { size: 14 } },
-                    min: 0,
-                    max: 1
-                }
+                    pointRadius: 2,
+                    borderWidth: 2
+                }]
             },
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: true, labels: { color: '#fff', font: { size: 12 } } },
-                tooltip: { mode: 'index', intersect: false }
-            }
-        }
-    });
-
-    varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: visibleDates,
-            datasets: [{
-                label: 'VaR',
-                data: normVaR,
-                borderColor: '#f5a623',
-                fill: false,
-                pointRadius: 2,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    ticks: {
-                        maxTicksLimit: 10,
-                        callback: (value, index) => ticks[index] || '',
-                        color: '#fff',
-                        font: { size: 12, family: 'Arial' },
-                        maxRotation: 45,
-                        minRotation: 45
+            options: {
+                scales: {
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 10,
+                            callback: (value, index) => ticks[index] || '',
+                            color: '#fff',
+                            font: { size: 12, family: 'Arial' },
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
+                    y: {
+                        ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
+                        title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } }
+                    }
                 },
-                y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `${(value * 100).toFixed(0)}%` },
-                    title: { display: true, text: 'Relative VaR', color: '#fff', font: { size: 14 } },
-                    min: 0,
-                    max: 1
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
                 }
-            },
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: { mode: 'index', intersect: false }
             }
-        }
-    });
-
-    volatilityChart = new Chart(document.getElementById('volatilityChart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: visibleDates,
-            datasets: [{
-                label: 'Volatility',
-                data: normVolatility,
-                borderColor: '#00cc00',
-                fill: false,
-                pointRadius: 2,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    ticks: {
-                        maxTicksLimit: 10,
-                        callback: (value, index) => ticks[index] || '',
-                        color: '#fff',
-                        font: { size: 12, family: 'Arial' },
-                        maxRotation: 45,
-                        minRotation: 45
-                    },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
-                },
-                y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `${(value * 100).toFixed(0)}%` },
-                    title: { display: true, text: 'Relative Volatility', color: '#fff', font: { size: 14 } },
-                    min: 0,
-                    max: 1
-                }
-            },
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: { mode: 'index', intersect: false }
-            }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Chart rendering error:', error);
+    }
 }
 
 async function fetchData() {
