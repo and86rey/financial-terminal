@@ -46,21 +46,26 @@ button:hover {
     border-radius: 5px;
     margin-top: 20px;
 }
-canvas {
-    width: 100% !important;
-    height: 300px !important; /* Fixed height for consistency */
-    background-color: #333;
-    padding: 10px;
-    box-sizing: border-box;
-}
 .chart-controls {
     text-align: center;
     margin: 10px 0;
+}
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+canvas {
+    width: 100% !important;
+    height: 200px !important; /* Smaller height for three graphs */
+    background-color: #333;
+    padding: 10px;
+    box-sizing: border-box;
 }
 @media (max-width: 600px) {
     h1 { font-size: 1.2em; }
     input { width: 60%; }
     button { padding: 6px 10px; }
     .results-section, .ledger-section { padding: 10px; }
-    canvas { height: 200px !important; } /* Smaller on mobile */
+    canvas { height: 150px !important; } /* Even smaller on mobile */
 }
