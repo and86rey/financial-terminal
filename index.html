@@ -57,10 +57,10 @@
     <py-script src="./metrics.py"></py-script>
     <script>
         // Wait for PyScript to load
-        window.addEventListener('py:ready', () => {
-            console.log('PyScript loaded');
+        document.addEventListener('pyscript-ready', () => {
+            console.log('PyScript loaded, metrics.py should be available');
         });
-        console.log('HTML loaded');
+        console.log('HTML loaded. Waiting for PyScript...');
     </script>
 </body>
 </html>
