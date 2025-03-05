@@ -1,8 +1,8 @@
 let priceChart, varChart, volatilityChart;
-const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your actual FMP API key
+const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
-let currentView = 'full';
+let currentDays = 30; // Default to 30 days
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
@@ -59,15 +59,14 @@ function updateCharts() {
     }
 
     const dataLength = fullDates.length;
-    const visibleDays = currentView === 'full' ? 252 : 21;
-    const startIndex = Math.max(0, dataLength - visibleDays);
+    const startIndex = Math.max(0, dataLength - currentDays);
 
     const visibleDates = fullDates.slice(startIndex);
     const visiblePrices = fullPrices.slice(startIndex);
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    const tickInterval = currentView === 'full' ? 25 : 2;
+    const tickInterval = Math.max(1, Math.floor(currentDays / 10)); // ~10 ticks
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
     if (priceChart) priceChart.destroy();
@@ -83,7 +82,7 @@ function updateCharts() {
                 data: visiblePrices,
                 borderColor: '#fff',
                 fill: false,
-                pointRadius: 0,
+                pointRadius: 2,
                 borderWidth: 2
             }]
         },
@@ -91,18 +90,18 @@ function updateCharts() {
             scales: {
                 x: {
                     ticks: {
-                        maxTicksLimit: 12,
+                        maxTicksLimit: 10,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 14, family: 'Arial' },
+                        font: { size: 12, family: 'Arial' },
                         maxRotation: 45,
                         minRotation: 45
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 16 } }
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 14 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 16 } }
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
+                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } }
                 }
             },
             responsive: true,
@@ -123,7 +122,7 @@ function updateCharts() {
                 data: visibleVaR,
                 borderColor: '#f5a623',
                 fill: false,
-                pointRadius: 0,
+                pointRadius: 2,
                 borderWidth: 2
             }]
         },
@@ -131,18 +130,18 @@ function updateCharts() {
             scales: {
                 x: {
                     ticks: {
-                        maxTicksLimit: 12,
+                        maxTicksLimit: 10,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 14, family: 'Arial' },
+                        font: { size: 12, family: 'Arial' },
                         maxRotation: 45,
                         minRotation: 45
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 16 } }
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 14 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 16 } }
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
+                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } }
                 }
             },
             responsive: true,
@@ -163,7 +162,7 @@ function updateCharts() {
                 data: visibleVolatility,
                 borderColor: '#00cc00',
                 fill: false,
-                pointRadius: 0,
+                pointRadius: 2,
                 borderWidth: 2
             }]
         },
@@ -171,18 +170,18 @@ function updateCharts() {
             scales: {
                 x: {
                     ticks: {
-                        maxTicksLimit: 12,
+                        maxTicksLimit: 10,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 14, family: 'Arial' },
+                        font: { size: 12, family: 'Arial' },
                         maxRotation: 45,
                         minRotation: 45
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 16 } }
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 14 }, callback: value => value.toFixed(4) },
-                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 16 } }
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
+                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } }
                 }
             },
             responsive: true,
@@ -202,16 +201,13 @@ async function fetchData() {
         return;
     }
 
-    console.log('Fetching data for:', query); // Debug
+    console.log('Fetching data for:', query);
 
     try {
         updateLedger(query);
 
         const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
         const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`;
-
-        console.log('Profile URL:', profileUrl); // Debug
-        console.log('Historical URL:', historicalUrl); // Debug
 
         const [profileRes, historicalRes] = await Promise.all([
             fetch(profileUrl).then(res => {
@@ -223,9 +219,6 @@ async function fetchData() {
                 return res.json();
             })
         ]);
-
-        console.log('Profile Response:', profileRes); // Debug
-        console.log('Historical Response:', historicalRes); // Debug
 
         const profileData = profileRes[0] || {};
         const historicalData = historicalRes.historical || [];
@@ -249,12 +242,9 @@ async function fetchData() {
         fullVaR = [0, ...rollingVaR.map(v => v * fullPrices[fullPrices.length - 1])];
         fullVolatility = [0, ...rollingVolatility];
 
-        console.log('Dates:', fullDates); // Debug
-        console.log('Prices:', fullPrices); // Debug
-        console.log('VaR:', fullVaR); // Debug
-        console.log('Volatility:', fullVolatility); // Debug
-
-        currentView = 'full';
+        currentDays = 30; // Default to 30 days
+        document.getElementById('dayRange').value = currentDays;
+        document.getElementById('dayCount').textContent = `${currentDays} days`;
         updateCharts();
 
     } catch (error) {
@@ -263,24 +253,27 @@ async function fetchData() {
     }
 }
 
-function showLastMonth() {
-    currentView = 'month';
+function updateDays(days) {
+    currentDays = parseInt(days);
+    document.getElementById('dayCount').textContent = `${currentDays} days`;
     updateCharts();
 }
 
-function showFullYear() {
-    currentView = 'full';
+function setDays(days) {
+    currentDays = days;
+    document.getElementById('dayRange').value = currentDays;
+    document.getElementById('dayCount').textContent = `${currentDays} days`;
     updateCharts();
 }
 
 window.onload = () => {
-    console.log('Page loaded'); // Debug
+    console.log('Page loaded');
     displayLedger();
     const searchButton = document.getElementById('searchButton');
     const searchInput = document.getElementById('searchInput');
     if (searchButton) {
         searchButton.addEventListener('click', () => {
-            console.log('Search button clicked'); // Debug
+            console.log('Search button clicked');
             fetchData();
         });
     } else {
@@ -289,7 +282,7 @@ window.onload = () => {
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                console.log('Enter key pressed'); // Debug
+                console.log('Enter key pressed');
                 fetchData();
             }
         });
