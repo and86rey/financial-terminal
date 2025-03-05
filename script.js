@@ -21,7 +21,7 @@ async function waitForPyScript() {
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
-    requestLedger = [{ query, timestamp }]; // Keep only latest
+    requestLedger = [{ query, timestamp }];
     localStorage.setItem('requestLedger', JSON.stringify(requestLedger));
     displayLedger();
 }
@@ -290,15 +290,19 @@ function setDays(days) {
     updateCharts();
 }
 
-window.onload = async () => {
+window.onload = () => {
     console.log('Page loaded');
+    console.log('HTML loaded. Waiting for PyScript...'); // Moved from inline
+    document.addEventListener('pyscript-ready', () => {
+        console.log('PyScript loaded, metrics.py should be available');
+    });
     displayLedger();
     const searchButton = document.getElementById('searchButton');
     const searchInput = document.getElementById('searchInput');
     if (searchButton) {
         searchButton.addEventListener('click', async () => {
             console.log('Search button clicked');
-            await fetchData(); // Wrap in async
+            await fetchData();
         });
     } else {
         console.error('Search button not found');
@@ -307,7 +311,7 @@ window.onload = async () => {
         searchInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 console.log('Enter key pressed');
-                await fetchData(); // Wrap in async
+                await fetchData();
             }
         });
     } else {
