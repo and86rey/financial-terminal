@@ -1,5 +1,5 @@
 let priceChart, varChart, volatilityChart;
-const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your FMP API key
+const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your actual FMP API key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
 let currentView = 'full';
@@ -13,7 +13,11 @@ function updateLedger(query) {
 
 function displayLedger() {
     const ledgerList = document.getElementById('ledgerList');
-    ledgerList.innerHTML = requestLedger.map(r => `<li>${r.query} - ${r.timestamp}</li>`).join('');
+    if (ledgerList) {
+        ledgerList.innerHTML = requestLedger.map(r => `<li>${r.query} - ${r.timestamp}</li>`).join('');
+    } else {
+        console.error('Ledger list element not found');
+    }
 }
 
 function calculateRollingVaR(returns, windowSize = 20) {
@@ -33,22 +37,27 @@ function calculateRollingVaR(returns, windowSize = 20) {
 }
 
 function calculateRollingVolatility(returns, windowSize = 20) {
-    const volValues = []; // Fixed typo: was 'varValues'
+    const volValues = [];
     for (let i = 0; i < returns.length; i++) {
         const start = Math.max(0, i - windowSize + 1);
         const window = returns.slice(start, i + 1);
         if (window.length < 5) {
-            volValues.push(0); // Fixed typo
+            volValues.push(0);
         } else {
             const mean = window.reduce((a, b) => a + b, 0) / window.length;
             const variance = window.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / window.length;
-            volValues.push(Math.sqrt(variance)); // Fixed typo
+            volValues.push(Math.sqrt(variance));
         }
     }
     return volValues;
 }
 
 function updateCharts() {
+    if (!fullDates.length) {
+        console.warn('No data to chart');
+        return;
+    }
+
     const dataLength = fullDates.length;
     const visibleDays = currentView === 'full' ? 252 : 21;
     const startIndex = Math.max(0, dataLength - visibleDays);
@@ -58,7 +67,7 @@ function updateCharts() {
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    const tickInterval = currentView === 'full' ? 25 : 2; // ~10 ticks
+    const tickInterval = currentView === 'full' ? 25 : 2;
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
     if (priceChart) priceChart.destroy();
@@ -188,7 +197,12 @@ function updateCharts() {
 
 async function fetchData() {
     const query = document.getElementById('searchInput').value.trim();
-    if (!query) return;
+    if (!query) {
+        console.log('No query entered');
+        return;
+    }
+
+    console.log('Fetching data for:', query); // Debug
 
     try {
         updateLedger(query);
@@ -196,10 +210,22 @@ async function fetchData() {
         const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
         const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`;
 
+        console.log('Profile URL:', profileUrl); // Debug
+        console.log('Historical URL:', historicalUrl); // Debug
+
         const [profileRes, historicalRes] = await Promise.all([
-            fetch(profileUrl).then(res => { if (!res.ok) throw new Error('Profile API failed'); return res.json(); }),
-            fetch(historicalUrl).then(res => { if (!res.ok) throw new Error('Historical API failed'); return res.json(); })
+            fetch(profileUrl).then(res => {
+                if (!res.ok) throw new Error(`Profile API failed: ${res.status}`);
+                return res.json();
+            }),
+            fetch(historicalUrl).then(res => {
+                if (!res.ok) throw new Error(`Historical API failed: ${res.status}`);
+                return res.json();
+            })
         ]);
+
+        console.log('Profile Response:', profileRes); // Debug
+        console.log('Historical Response:', historicalRes); // Debug
 
         const profileData = profileRes[0] || {};
         const historicalData = historicalRes.historical || [];
@@ -223,11 +249,16 @@ async function fetchData() {
         fullVaR = [0, ...rollingVaR.map(v => v * fullPrices[fullPrices.length - 1])];
         fullVolatility = [0, ...rollingVolatility];
 
+        console.log('Dates:', fullDates); // Debug
+        console.log('Prices:', fullPrices); // Debug
+        console.log('VaR:', fullVaR); // Debug
+        console.log('Volatility:', fullVolatility); // Debug
+
         currentView = 'full';
         updateCharts();
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Fetch error:', error.message);
         document.getElementById('financialData').innerHTML = `<p>Error: ${error.message}</p>`;
     }
 }
@@ -243,9 +274,26 @@ function showFullYear() {
 }
 
 window.onload = () => {
+    console.log('Page loaded'); // Debug
     displayLedger();
-    document.getElementById('searchButton').addEventListener('click', fetchData);
-    document.getElementById('searchInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') fetchData();
-    });
+    const searchButton = document.getElementById('searchButton');
+    const searchInput = document.getElementById('searchInput');
+    if (searchButton) {
+        searchButton.addEventListener('click', () => {
+            console.log('Search button clicked'); // Debug
+            fetchData();
+        });
+    } else {
+        console.error('Search button not found');
+    }
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                console.log('Enter key pressed'); // Debug
+                fetchData();
+            }
+        });
+    } else {
+        console.error('Search input not found');
+    }
 };
