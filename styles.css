@@ -115,15 +115,8 @@ canvas {
     text-align: center;
     color: #fff;
     font-size: 1em;
-}
-.metric-box table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 5px;
-}
-.metric-box th, .metric-box td {
-    border: 1px solid #333;
-    padding: 5px;
+    display: flex;
+    justify-content: space-around;
 }
 .ledger-section {
     background-color: #1a1a1a;
@@ -146,4 +139,5 @@ canvas {
     .graph-grid { height: 450px; }
     canvas { height: 135px !important; }
     input[type="range"] { width: 150px; }
+    .metric-box { flex-direction: column; gap: 5px; }
 }
