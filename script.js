@@ -70,12 +70,12 @@ function updateCharts() {
                 y: {
                     ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
                     title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } },
-                    suggestedMin: Math.min(...visiblePrices) * 0.95, // Lock range
+                    suggestedMin: Math.min(...visiblePrices) * 0.95,
                     suggestedMax: Math.max(...visiblePrices) * 1.05
                 }
             },
             responsive: true,
-            maintainAspectRatio: true, // Lock aspect
+            maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
@@ -180,29 +180,15 @@ async function fetchData() {
     try {
         updateLedger(query);
 
-        const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
-        const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`;
+        // Pass tickers to Python
+        const [rollingVaR, rollingVolatility] = await window.processMetrics(query);
+        const firstTicker = query.split(',')[0].trim();
+        const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${firstTicker}?serietype=line&apikey=${FMP_API_KEY}`;
+        const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${firstTicker}?apikey=${FMP_API_KEY}`;
 
         const [profileRes, historicalRes] = await Promise.all([
             fetch(profileUrl).then(res => {
                 if (!res.ok) throw new Error(`Profile API failed: ${res.status}`);
                 return res.json();
             }),
-            fetch(historicalUrl).then(res => {
-                if (!res.ok) throw new Error(`Historical API failed: ${res.status}`);
-                return res.json();
-            })
-        ]);
-
-        const profileData = profileRes[0] || {};
-        const historicalData = historicalRes.historical || [];
-        if (!historicalData.length) throw new Error('No historical data returned');
-
-        const limitedData = historicalData.slice(0, Math.min(252, historicalData.length)).reverse();
-        if (limitedData.length < 2) throw new Error('Insufficient historical data');
-
-        document.getElementById('financialData').innerHTML = `
-            <p>Company: ${profileData.companyName || 'N/A'}</p>
-            <p>Ticker: ${profileData.symbol || 'N/A'}</p>
-            <p>Price: $${profileData.price || 'N/A'}</p>
-            <p>Market Cap: $${profileData.mktCap
+            fetch
