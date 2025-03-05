@@ -5,7 +5,6 @@ let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
 let shortMA = [], longMA = [];
 let currentDays = 30;
 
-// Wait for PyScript to be ready
 async function waitForPyScript() {
     return new Promise((resolve) => {
         if (window.processMetrics) {
@@ -32,9 +31,23 @@ function displayLedger() {
     }
 }
 
+function normalizeData(data) {
+    const min = Math.min(...data.filter(v => v !== 0));
+    const max = Math.max(...data.filter(v => v !== 0));
+    return data.map(v => v === 0 ? 0 : (v - min) / (max - min)); // Relative 0-1 scale
+}
+
 function updateCharts() {
-    if (!fullDates.length) {
-        console.warn('No data to chart');
+    console.log('Updating charts...');
+    console.log('fullDates:', fullDates);
+    console.log('fullPrices:', fullPrices);
+    console.log('fullVaR:', fullVaR);
+    console.log('fullVolatility:', fullVolatility);
+    console.log('shortMA:', shortMA);
+    console.log('longMA:', longMA);
+
+    if (!fullDates.length || !fullPrices.length || !fullVaR.length || !fullVolatility.length) {
+        console.warn('Missing data for charts');
         return;
     }
 
@@ -51,6 +64,12 @@ function updateCharts() {
     const tickInterval = Math.max(1, Math.floor(currentDays / 10));
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
+    const normPrices = normalizeData(visiblePrices);
+    const normVaR = normalizeData(visibleVaR);
+    const normVolatility = normalizeData(visibleVolatility);
+    const normShortMA = normalizeData(visibleShortMA);
+    const normLongMA = normalizeData(visibleLongMA);
+
     if (priceChart) priceChart.destroy();
     if (varChart) varChart.destroy();
     if (volatilityChart) volatilityChart.destroy();
@@ -62,7 +81,7 @@ function updateCharts() {
             datasets: [
                 {
                     label: 'Price',
-                    data: visiblePrices,
+                    data: normPrices,
                     borderColor: '#fff',
                     fill: false,
                     pointRadius: 2,
@@ -70,7 +89,7 @@ function updateCharts() {
                 },
                 {
                     label: '20-day MA',
-                    data: visibleShortMA,
+                    data: normShortMA,
                     borderColor: '#f5a623',
                     fill: false,
                     pointRadius: 0,
@@ -79,7 +98,7 @@ function updateCharts() {
                 },
                 {
                     label: '50-day MA',
-                    data: visibleLongMA,
+                    data: normLongMA,
                     borderColor: '#00cc00',
                     fill: false,
                     pointRadius: 0,
@@ -102,10 +121,10 @@ function updateCharts() {
                     title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } },
-                    suggestedMin: Math.min(...visiblePrices) * 0.95,
-                    suggestedMax: Math.max(...visiblePrices) * 1.05
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `${(value * 100).toFixed(0)}%` },
+                    title: { display: true, text: 'Relative Price', color: '#fff', font: { size: 14 } },
+                    min: 0,
+                    max: 1
                 }
             },
             responsive: true,
@@ -123,7 +142,7 @@ function updateCharts() {
             labels: visibleDates,
             datasets: [{
                 label: 'VaR',
-                data: visibleVaR,
+                data: normVaR,
                 borderColor: '#f5a623',
                 fill: false,
                 pointRadius: 2,
@@ -144,10 +163,10 @@ function updateCharts() {
                     title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } },
-                    suggestedMin: Math.min(...visibleVaR) * 0.95,
-                    suggestedMax: Math.max(...visibleVaR) * 1.05
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `${(value * 100).toFixed(0)}%` },
+                    title: { display: true, text: 'Relative VaR', color: '#fff', font: { size: 14 } },
+                    min: 0,
+                    max: 1
                 }
             },
             responsive: true,
@@ -165,7 +184,7 @@ function updateCharts() {
             labels: visibleDates,
             datasets: [{
                 label: 'Volatility',
-                data: visibleVolatility,
+                data: normVolatility,
                 borderColor: '#00cc00',
                 fill: false,
                 pointRadius: 2,
@@ -186,10 +205,10 @@ function updateCharts() {
                     title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
-                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } },
-                    suggestedMin: Math.min(...visibleVolatility) * 0.95,
-                    suggestedMax: Math.max(...visibleVolatility) * 1.05
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `${(value * 100).toFixed(0)}%` },
+                    title: { display: true, text: 'Relative Volatility', color: '#fff', font: { size: 14 } },
+                    min: 0,
+                    max: 1
                 }
             },
             responsive: true,
@@ -245,7 +264,6 @@ async function fetchData() {
         fullDates = limitedData.map(d => d.date);
         fullPrices = limitedData.map(d => d.close);
 
-        // Wait for PyScript before calling processMetrics
         await waitForPyScript();
         if (!window.processMetrics) {
             throw new Error('processMetrics not available after PyScript load');
@@ -255,6 +273,8 @@ async function fetchData() {
         fullVolatility = rollingVolatility;
         shortMA = shortMAData;
         longMA = longMAData;
+
+        console.log('Post-Python data:', { fullVaR, fullVolatility, shortMA, longMA });
 
         currentDays = 30;
         document.getElementById('dayRange').value = currentDays;
