@@ -38,7 +38,7 @@ function calculateRollingVolatility(returns, windowSize = 20) {
         const start = Math.max(0, i - windowSize + 1);
         const window = returns.slice(start, i + 1);
         if (window.length < 5) {
-            volValues.push(0);
+            varValues.push(0);
         } else {
             const mean = window.reduce((a, b) => a + b, 0) / window.length;
             const variance = window.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / window.length;
@@ -58,7 +58,7 @@ function updateCharts() {
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    const tickInterval = currentView === 'full' ? 7 : 1;
+    const tickInterval = currentView === 'full' ? 25 : 2; // ~10 ticks for full, ~10 for month
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
     if (priceChart) priceChart.destroy();
@@ -75,31 +75,31 @@ function updateCharts() {
                 borderColor: '#fff',
                 fill: false,
                 pointRadius: 0,
-                borderWidth: 1
+                borderWidth: 2
             }]
         },
         options: {
             scales: {
                 x: {
                     ticks: {
-                        maxTicksLimit: currentView === 'full' ? 36 : 21,
+                        maxTicksLimit: 12,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 12 },
+                        font: { size: 14 },
                         maxRotation: 45,
                         minRotation: 45
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 16 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } }
+                    ticks: { color: '#fff', font: { size: 14 }, callback: value => `$${value.toFixed(2)}` },
+                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 16 } }
                 }
             },
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { labels: { color: '#fff', font: { size: 12 } } },
+                legend: { display: false }, // Title in HTML
                 tooltip: { mode: 'index', intersect: false }
             }
         }
@@ -115,31 +115,31 @@ function updateCharts() {
                 borderColor: '#ff9500',
                 fill: false,
                 pointRadius: 0,
-                borderWidth: 1
+                borderWidth: 2
             }]
         },
         options: {
             scales: {
                 x: {
                     ticks: {
-                        maxTicksLimit: currentView === 'full' ? 36 : 21,
+                        maxTicksLimit: 12,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 12 },
+                        font: { size: 14 },
                         maxRotation: 45,
                         minRotation: 45
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 16 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } }
+                    ticks: { color: '#fff', font: { size: 14 }, callback: value => `$${value.toFixed(2)}` },
+                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 16 } }
                 }
             },
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { labels: { color: '#fff', font: { size: 12 } } },
+                legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
             }
         }
@@ -155,31 +155,31 @@ function updateCharts() {
                 borderColor: '#00cc00',
                 fill: false,
                 pointRadius: 0,
-                borderWidth: 1
+                borderWidth: 2
             }]
         },
         options: {
             scales: {
                 x: {
                     ticks: {
-                        maxTicksLimit: currentView === 'full' ? 36 : 21,
+                        maxTicksLimit: 12,
                         callback: (value, index) => ticks[index] || '',
                         color: '#fff',
-                        font: { size: 12 },
+                        font: { size: 14 },
                         maxRotation: 45,
                         minRotation: 45
                     },
-                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 16 } }
                 },
                 y: {
-                    ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
-                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } }
+                    ticks: { color: '#fff', font: { size: 14 }, callback: value => value.toFixed(4) },
+                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 16 } }
                 }
             },
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { labels: { color: '#fff', font: { size: 12 } } },
+                legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
             }
         }
