@@ -1,6 +1,8 @@
 let varChart, volatilityChart;
 const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your FMP API key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
+let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
+let zoomLevel = 1; // 1 = full view, higher = zoomed in
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
@@ -46,6 +48,90 @@ function calculateRollingVolatility(returns, windowSize = 20) {
     return volValues;
 }
 
+function updateCharts() {
+    const dataLength = fullDates.length;
+    const visibleDays = Math.floor(252 / zoomLevel); // Adjust visible range
+    const startIndex = Math.max(0, dataLength - visibleDays);
+
+    const visibleDates = fullDates.slice(startIndex);
+    const visiblePrices = fullPrices.slice(startIndex);
+    const visibleVaR = fullVaR.slice(startIndex);
+    const visibleVolatility = fullVolatility.slice(startIndex);
+
+    // Set tick size (max 12 ticks)
+    const tickInterval = Math.ceil(visibleDates.length / 12);
+    const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
+
+    if (varChart) varChart.destroy();
+    if (volatilityChart) volatilityChart.destroy();
+
+    varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: visibleDates,
+            datasets: [
+                {
+                    label: 'Rolling VaR (95%, 20-day)',
+                    data: visibleVaR,
+                    borderColor: '#ff9500',
+                    fill: false,
+                    pointRadius: 0,
+                    borderWidth: 1
+                },
+                {
+                    label: 'Price',
+                    data: visiblePrices,
+                    borderColor: '#fff',
+                    fill: false,
+                    pointRadius: 0,
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: { maxTicksLimit: 12, callback: (value, index) => ticks[index] || '' },
+                    title: { display: true, text: 'Date' }
+                },
+                y: { beginAtZero: false, title: { display: true, text: 'Value ($)' } }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { tooltip: { mode: 'index', intersect: false } }
+        }
+    });
+
+    volatilityChart = new Chart(document.getElementById('volatilityChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: visibleDates,
+            datasets: [
+                {
+                    label: 'Rolling Volatility (20-day)',
+                    data: visibleVolatility,
+                    borderColor: '#00cc00',
+                    fill: false,
+                    pointRadius: 0,
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: { maxTicksLimit: 12, callback: (value, index) => ticks[index] || '' },
+                    title: { display: true, text: 'Date' }
+                },
+                y: { beginAtZero: true, title: { display: true, text: 'Volatility' } }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { tooltip: { mode: 'index', intersect: false } }
+        }
+    });
+}
+
 async function fetchData() {
     const query = document.getElementById('searchInput').value.trim();
     if (!query) return;
@@ -57,22 +143,14 @@ async function fetchData() {
         const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`;
 
         const [profileRes, historicalRes] = await Promise.all([
-            fetch(profileUrl).then(res => {
-                if (!res.ok) throw new Error('Profile API failed');
-                return res.json();
-            }),
-            fetch(historicalUrl).then(res => {
-                if (!res.ok) throw new Error('Historical API failed');
-                return res.json();
-            })
+            fetch(profileUrl).then(res => { if (!res.ok) throw new Error('Profile API failed'); return res.json(); }),
+            fetch(historicalUrl).then(res => { if (!res.ok) throw new Error('Historical API failed'); return res.json(); })
         ]);
 
         const profileData = profileRes[0] || {};
         const historicalData = historicalRes.historical || [];
-        
         if (!historicalData.length) throw new Error('No historical data returned');
 
-        // Limit to last 252 days or available data
         const limitedData = historicalData.slice(0, Math.min(252, historicalData.length)).reverse();
         if (limitedData.length < 2) throw new Error('Insufficient historical data');
 
@@ -83,85 +161,16 @@ async function fetchData() {
             <p>Market Cap: $${profileData.mktCap || 'N/A'}</p>
         `;
 
-        const dates = limitedData.map(d => d.date);
-        const prices = limitedData.map(d => d.close);
-
-        console.log('Dates:', dates); // Debug
-        console.log('Prices:', prices); // Debug
-
-        const returns = prices.slice(1).map((p, i) => (p - prices[i]) / prices[i]);
-        console.log('Returns:', returns); // Debug
-
+        fullDates = limitedData.map(d => d.date);
+        fullPrices = limitedData.map(d => d.close);
+        const returns = fullPrices.slice(1).map((p, i) => (p - fullPrices[i]) / fullPrices[i]);
         const rollingVaR = calculateRollingVaR(returns);
         const rollingVolatility = calculateRollingVolatility(returns);
+        fullVaR = [0, ...rollingVaR.map(v => v * fullPrices[fullPrices.length - 1])];
+        fullVolatility = [0, ...rollingVolatility];
 
-        const fullVaR = [0, ...rollingVaR.map(v => v * prices[prices.length - 1])];
-        const fullVolatility = [0, ...rollingVolatility];
-        console.log('VaR:', fullVaR); // Debug
-        console.log('Volatility:', fullVolatility); // Debug
-
-        if (varChart) varChart.destroy();
-        if (volatilityChart) volatilityChart.destroy();
-
-        varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [
-                    {
-                        label: 'Rolling VaR (95%, 20-day)',
-                        data: fullVaR,
-                        borderColor: '#ff9500',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Price',
-                        data: prices,
-                        borderColor: '#fff',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                scales: {
-                    x: { display: true, title: { display: true, text: 'Date' } },
-                    y: { beginAtZero: false, title: { display: true, text: 'Value ($)' } }
-                },
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { tooltip: { mode: 'index', intersect: false } }
-            }
-        });
-
-        volatilityChart = new Chart(document.getElementById('volatilityChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [
-                    {
-                        label: 'Rolling Volatility (20-day)',
-                        data: fullVolatility,
-                        borderColor: '#00cc00',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                scales: {
-                    x: { display: true, title: { display: true, text: 'Date' } },
-                    y: { beginAtZero: true, title: { display: true, text: 'Volatility' } }
-                },
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { tooltip: { mode: 'index', intersect: false } }
-            }
-        });
+        zoomLevel = 1; // Reset zoom on new search
+        updateCharts();
 
     } catch (error) {
         console.error('Error:', error);
@@ -169,4 +178,21 @@ async function fetchData() {
     }
 }
 
-window.onload = displayLedger;
+function zoomIn() {
+    zoomLevel = Math.min(zoomLevel + 1, 5); // Max zoom level 5x
+    updateCharts();
+}
+
+function zoomOut() {
+    zoomLevel = Math.max(zoomLevel - 1, 1); // Min zoom level 1x
+    updateCharts();
+}
+
+// Event listeners
+window.onload = () => {
+    displayLedger();
+    document.getElementById('searchButton').addEventListener('click', fetchData);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') fetchData();
+    });
+};
