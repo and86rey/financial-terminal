@@ -23,6 +23,7 @@
             <div id="financialData"></div>
             <h2>Market Risk Metrics (Last 252 Trading Days)</h2>
             <div class="chart-controls">
+                <button onclick="setDays(7)">7 Days</button>
                 <button onclick="setDays(30)">Last Month</button>
                 <button onclick="setDays(252)">Full Year</button>
                 <input type="range" id="dayRange" min="7" max="252" value="30" step="1" oninput="updateDays(this.value)">
@@ -56,7 +57,6 @@
     <script src="script.js"></script>
     <py-script src="./metrics.py"></py-script>
     <script>
-        // Wait for PyScript to load
         document.addEventListener('pyscript-ready', () => {
             console.log('PyScript loaded, metrics.py should be available');
         });
