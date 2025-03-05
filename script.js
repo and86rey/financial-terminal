@@ -2,7 +2,7 @@ let priceChart, varChart, volatilityChart;
 const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your FMP API key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
-let currentView = 'full'; // 'full' or 'month'
+let currentView = 'full';
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
@@ -50,7 +50,7 @@ function calculateRollingVolatility(returns, windowSize = 20) {
 
 function updateCharts() {
     const dataLength = fullDates.length;
-    const visibleDays = currentView === 'full' ? 252 : 21; // 252 for full year, 21 for last month
+    const visibleDays = currentView === 'full' ? 252 : 21;
     const startIndex = Math.max(0, dataLength - visibleDays);
 
     const visibleDates = fullDates.slice(startIndex);
@@ -58,7 +58,6 @@ function updateCharts() {
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    // Default tick size: every 7 days for full view, every day for month view
     const tickInterval = currentView === 'full' ? 7 : 1;
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
@@ -71,7 +70,7 @@ function updateCharts() {
         data: {
             labels: visibleDates,
             datasets: [{
-                label: 'Price History',
+                label: 'Price',
                 data: visiblePrices,
                 borderColor: '#fff',
                 fill: false,
@@ -82,14 +81,27 @@ function updateCharts() {
         options: {
             scales: {
                 x: {
-                    ticks: { maxTicksLimit: currentView === 'full' ? 36 : 21, callback: (value, index) => ticks[index] || '' },
-                    title: { display: true, text: 'Date' }
+                    ticks: {
+                        maxTicksLimit: currentView === 'full' ? 36 : 21,
+                        callback: (value, index) => ticks[index] || '',
+                        color: '#fff',
+                        font: { size: 12 },
+                        maxRotation: 45,
+                        minRotation: 45
+                    },
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
-                y: { beginAtZero: false, title: { display: true, text: 'Price ($)' } }
+                y: {
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
+                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } }
+                }
             },
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { tooltip: { mode: 'index', intersect: false } }
+            plugins: {
+                legend: { labels: { color: '#fff', font: { size: 12 } } },
+                tooltip: { mode: 'index', intersect: false }
+            }
         }
     });
 
@@ -98,7 +110,7 @@ function updateCharts() {
         data: {
             labels: visibleDates,
             datasets: [{
-                label: 'Rolling VaR (95%, 20-day)',
+                label: 'VaR',
                 data: visibleVaR,
                 borderColor: '#ff9500',
                 fill: false,
@@ -109,14 +121,27 @@ function updateCharts() {
         options: {
             scales: {
                 x: {
-                    ticks: { maxTicksLimit: currentView === 'full' ? 36 : 21, callback: (value, index) => ticks[index] || '' },
-                    title: { display: true, text: 'Date' }
+                    ticks: {
+                        maxTicksLimit: currentView === 'full' ? 36 : 21,
+                        callback: (value, index) => ticks[index] || '',
+                        color: '#fff',
+                        font: { size: 12 },
+                        maxRotation: 45,
+                        minRotation: 45
+                    },
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
-                y: { beginAtZero: false, title: { display: true, text: 'VaR ($)' } }
+                y: {
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
+                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } }
+                }
             },
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { tooltip: { mode: 'index', intersect: false } }
+            plugins: {
+                legend: { labels: { color: '#fff', font: { size: 12 } } },
+                tooltip: { mode: 'index', intersect: false }
+            }
         }
     });
 
@@ -125,7 +150,7 @@ function updateCharts() {
         data: {
             labels: visibleDates,
             datasets: [{
-                label: 'Rolling Volatility (20-day)',
+                label: 'Volatility',
                 data: visibleVolatility,
                 borderColor: '#00cc00',
                 fill: false,
@@ -136,14 +161,27 @@ function updateCharts() {
         options: {
             scales: {
                 x: {
-                    ticks: { maxTicksLimit: currentView === 'full' ? 36 : 21, callback: (value, index) => ticks[index] || '' },
-                    title: { display: true, text: 'Date' }
+                    ticks: {
+                        maxTicksLimit: currentView === 'full' ? 36 : 21,
+                        callback: (value, index) => ticks[index] || '',
+                        color: '#fff',
+                        font: { size: 12 },
+                        maxRotation: 45,
+                        minRotation: 45
+                    },
+                    title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
                 },
-                y: { beginAtZero: true, title: { display: true, text: 'Volatility' } }
+                y: {
+                    ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
+                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } }
+                }
             },
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { tooltip: { mode: 'index', intersect: false } }
+            plugins: {
+                legend: { labels: { color: '#fff', font: { size: 12 } } },
+                tooltip: { mode: 'index', intersect: false }
+            }
         }
     });
 }
@@ -185,7 +223,7 @@ async function fetchData() {
         fullVaR = [0, ...rollingVaR.map(v => v * fullPrices[fullPrices.length - 1])];
         fullVolatility = [0, ...rollingVolatility];
 
-        currentView = 'full'; // Default to full year
+        currentView = 'full';
         updateCharts();
 
     } catch (error) {
@@ -204,7 +242,6 @@ function showFullYear() {
     updateCharts();
 }
 
-// Event listeners
 window.onload = () => {
     displayLedger();
     document.getElementById('searchButton').addEventListener('click', fetchData);
