@@ -15,7 +15,7 @@
     <div class="container">
         <h1>Financial Data Terminal</h1>
         <div class="input-section">
-            <input type="text" id="searchInput" placeholder="Tickers (e.g., AAPL or AAPL, MSFT)">
+            <input type="text" id="searchInput" placeholder="ISIN, Name, or Ticker (e.g., AAPL)">
             <button id="searchButton">Search</button>
         </div>
         <div id="results" class="results-section">
@@ -42,10 +42,10 @@
                     <canvas id="volatilityChart"></canvas>
                 </div>
             </div>
-            <div id="sharpeRatio" class="metric-box"></div>
-            <div id="monteCarloVaR" class="metric-box"></div> <!-- New Monte Carlo VaR -->
-            <div id="correlationMatrix" class="metric-box"></div> <!-- New Correlation Matrix -->
-            <div id="maSignals" class="metric-box"></div> <!-- New MA Signals -->
+            <div id="metrics" class="metric-box">
+                <span id="sharpeRatio"></span>
+                <span id="sortinoRatio"></span>
+            </div>
         </div>
         <div id="ledger" class="ledger-section">
             <h2>Request Ledger</h2>
