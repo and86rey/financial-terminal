@@ -7,6 +7,7 @@ let currentDays = 30;
 
 async function waitForPyScript() {
     return new Promise((resolve) => {
+        console.log('Waiting for PyScript...');
         if (window.processMetrics) {
             console.log('processMetrics already available');
             resolve();
@@ -258,11 +259,12 @@ async function fetchData() {
         if (!window.processMetrics) {
             throw new Error('processMetrics not available after PyScript load');
         }
-        const [rollingVaR, rollingVolatility, shortMAData, longMAData] = await window.processMetrics(fullPrices);
-        fullVaR = rollingVaR;
-        fullVolatility = rollingVolatility;
-        shortMA = shortMAData;
-        longMA = longMAData;
+        const metricsResult = await window.processMetrics(fullPrices);
+        console.log('Raw metrics result:', metricsResult);
+        fullVaR = metricsResult[0];
+        fullVolatility = metricsResult[1];
+        shortMA = metricsResult[2];
+        longMA = metricsResult[3];
 
         console.log('Post-Python data:', { fullVaR, fullVolatility, shortMA, longMA });
 
@@ -292,7 +294,7 @@ function setDays(days) {
 
 window.onload = () => {
     console.log('Page loaded');
-    console.log('HTML loaded. Waiting for PyScript...'); // Moved from inline
+    console.log('HTML loaded. Waiting for PyScript...');
     document.addEventListener('pyscript-ready', () => {
         console.log('PyScript loaded, metrics.py should be available');
     });
