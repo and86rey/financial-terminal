@@ -1,5 +1,5 @@
 let varChart, volatilityChart;
-const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your FMP API key
+const FMP_API_KEY = 'YOUR_FMP_API_KEY'; // Replace with your FMP API key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 
 function updateLedger(query) {
@@ -14,15 +14,45 @@ function displayLedger() {
     ledgerList.innerHTML = requestLedger.map(r => `<li>${r.query} - ${r.timestamp}</li>`).join('');
 }
 
+// Helper function to calculate rolling VaR (95% confidence)
+function calculateRollingVaR(returns) {
+    const varValues = [];
+    for (let i = 0; i < returns.length; i++) {
+        const window = returns.slice(0, i + 1); // Use all prior returns up to current day
+        if (window.length < 2) {
+            varValues.push(0); // Not enough data for VaR
+        } else {
+            const sortedWindow = [...window].sort((a, b) => a - b);
+            const var95 = sortedWindow[Math.floor(sortedWindow.length * 0.05)] * -1; // 5% tail loss
+            varValues.push(var95);
+        }
+    }
+    return varValues;
+}
+
+// Helper function to calculate rolling volatility
+function calculateRollingVolatility(returns) {
+    const volValues = [];
+    for (let i = 0; i < returns.length; i++) {
+        const window = returns.slice(0, i + 1); // Use all prior returns up to current day
+        if (window.length < 2) {
+            volValues.push(0); // Not enough data for volatility
+        } else {
+            const mean = window.reduce((a, b) => a + b, 0) / window.length;
+            const variance = window.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / window.length;
+            volValues.push(Math.sqrt(variance));
+        }
+    }
+    return volValues;
+}
+
 async function fetchData() {
     const query = document.getElementById('searchInput').value.trim();
     if (!query) return;
 
     try {
-        // Update ledger
         updateLedger(query);
 
-        // Fetch data from FMP API
         const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
         const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line×eries=5&apikey=${FMP_API_KEY}`;
 
@@ -34,7 +64,6 @@ async function fetchData() {
         const profileData = profileRes[0] || {};
         const historicalData = historicalRes.historical || [];
 
-        // Display financial data
         document.getElementById('financialData').innerHTML = `
             <p>Company: ${profileData.companyName || 'N/A'}</p>
             <p>Ticker: ${profileData.symbol || 'N/A'}</p>
@@ -42,20 +71,22 @@ async function fetchData() {
             <p>Market Cap: $${profileData.mktCap || 'N/A'}</p>
         `;
 
-        // Prepare graph data
+        // Prepare data
         const dates = historicalData.map(d => d.date).reverse();
         const prices = historicalData.map(d => d.close).reverse();
 
-        // Calculate VaR (95% confidence, simple historical)
+        // Calculate daily returns
         const returns = prices.slice(1).map((p, i) => (p - prices[i]) / prices[i]);
-        const sortedReturns = [...returns].sort((a, b) => a - b);
-        const var95 = sortedReturns[Math.floor(sortedReturns.length * 0.05)] * -1;
 
-        // Calculate Volatility
-        const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-        const volatility = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length);
+        // Calculate rolling VaR and Volatility
+        const rollingVaR = calculateRollingVaR(returns);
+        const rollingVolatility = calculateRollingVolatility(returns);
 
-        // Destroy existing charts
+        // Adjust arrays to match dates (first day has no return, so prepend 0)
+        const fullDates = dates.slice(1); // Exclude first date since no return for it
+        const varWithPrice = [0, ...rollingVaR.map(v => v * prices[prices.length - 1])]; // Scale VaR to price level
+        const volWithPrice = [0, ...rollingVolatility];
+
         if (varChart) varChart.destroy();
         if (volatilityChart) volatilityChart.destroy();
 
@@ -64,19 +95,28 @@ async function fetchData() {
             type: 'line',
             data: {
                 labels: dates,
-                datasets: [{
-                    label: 'VaR (95%)',
-                    data: prices.map(() => var95 * prices[prices.length - 1]),
-                    borderColor: '#ff9500',
-                    fill: false
-                }, {
-                    label: 'Price',
-                    data: prices,
-                    borderColor: '#fff',
-                    fill: false
-                }]
+                datasets: [
+                    {
+                        label: 'Rolling VaR (95%)',
+                        data: varWithPrice,
+                        borderColor: '#ff9500',
+                        fill: false,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Price',
+                        data: prices,
+                        borderColor: '#fff',
+                        fill: false,
+                        pointRadius: 3
+                    }
+                ]
             },
-            options: { scales: { y: { beginAtZero: false } }, responsive: true }
+            options: {
+                scales: { y: { beginAtZero: false } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
         });
 
         // Volatility Chart
@@ -84,14 +124,21 @@ async function fetchData() {
             type: 'line',
             data: {
                 labels: dates,
-                datasets: [{
-                    label: 'Volatility',
-                    data: prices.map(() => volatility),
-                    borderColor: '#00cc00',
-                    fill: false
-                }]
+                datasets: [
+                    {
+                        label: 'Rolling Volatility',
+                        data: volWithPrice,
+                        borderColor: '#00cc00',
+                        fill: false,
+                        pointRadius: 3
+                    }
+                ]
             },
-            options: { scales: { y: { beginAtZero: false } }, responsive: true }
+            options: {
+                scales: { y: { beginAtZero: true } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
         });
 
     } catch (error) {
@@ -99,5 +146,4 @@ async function fetchData() {
     }
 }
 
-// Load ledger on page load
 window.onload = displayLedger;
