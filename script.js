@@ -1,5 +1,5 @@
 let varChart, volatilityChart;
-const FMP_API_KEY = 'YOUR_FMP_API_KEY'; // Replace with your FMP API key
+const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your FMP API key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 
 function updateLedger(query) {
@@ -14,13 +14,14 @@ function displayLedger() {
     ledgerList.innerHTML = requestLedger.map(r => `<li>${r.query} - ${r.timestamp}</li>`).join('');
 }
 
-// Helper function to calculate rolling VaR (95% confidence)
-function calculateRollingVaR(returns) {
+// Rolling VaR (95% confidence) over a 20-day window
+function calculateRollingVaR(returns, windowSize = 20) {
     const varValues = [];
     for (let i = 0; i < returns.length; i++) {
-        const window = returns.slice(0, i + 1); // Use all prior returns up to current day
-        if (window.length < 2) {
-            varValues.push(0); // Not enough data for VaR
+        const start = Math.max(0, i - windowSize + 1);
+        const window = returns.slice(start, i + 1);
+        if (window.length < 5) { // Minimum data for meaningful VaR
+            varValues.push(0);
         } else {
             const sortedWindow = [...window].sort((a, b) => a - b);
             const var95 = sortedWindow[Math.floor(sortedWindow.length * 0.05)] * -1; // 5% tail loss
@@ -30,13 +31,14 @@ function calculateRollingVaR(returns) {
     return varValues;
 }
 
-// Helper function to calculate rolling volatility
-function calculateRollingVolatility(returns) {
+// Rolling Volatility over a 20-day window
+function calculateRollingVolatility(returns, windowSize = 20) {
     const volValues = [];
     for (let i = 0; i < returns.length; i++) {
-        const window = returns.slice(0, i + 1); // Use all prior returns up to current day
-        if (window.length < 2) {
-            volValues.push(0); // Not enough data for volatility
+        const start = Math.max(0, i - windowSize + 1);
+        const window = returns.slice(start, i + 1);
+        if (window.length < 5) { // Minimum data for meaningful volatility
+            volValues.push(0);
         } else {
             const mean = window.reduce((a, b) => a + b, 0) / window.length;
             const variance = window.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / window.length;
@@ -54,7 +56,7 @@ async function fetchData() {
         updateLedger(query);
 
         const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
-        const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line×eries=5&apikey=${FMP_API_KEY}`;
+        const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`; // Full history
 
         const [profileRes, historicalRes] = await Promise.all([
             fetch(profileUrl).then(res => res.json()),
@@ -64,6 +66,10 @@ async function fetchData() {
         const profileData = profileRes[0] || {};
         const historicalData = historicalRes.historical || [];
 
+        // Limit to last 252 days (1 trading year)
+        const limitedData = historicalData.slice(0, 252).reverse();
+        if (limitedData.length < 2) throw new Error('Not enough historical data');
+
         document.getElementById('financialData').innerHTML = `
             <p>Company: ${profileData.companyName || 'N/A'}</p>
             <p>Ticker: ${profileData.symbol || 'N/A'}</p>
@@ -72,50 +78,59 @@ async function fetchData() {
         `;
 
         // Prepare data
-        const dates = historicalData.map(d => d.date).reverse();
-        const prices = historicalData.map(d => d.close).reverse();
+        const dates = limitedData.map(d => d.date);
+        const prices = limitedData.map(d => d.close);
 
         // Calculate daily returns
         const returns = prices.slice(1).map((p, i) => (p - prices[i]) / prices[i]);
 
-        // Calculate rolling VaR and Volatility
+        // Calculate rolling metrics
         const rollingVaR = calculateRollingVaR(returns);
         const rollingVolatility = calculateRollingVolatility(returns);
 
-        // Adjust arrays to match dates (first day has no return, so prepend 0)
-        const fullDates = dates.slice(1); // Exclude first date since no return for it
-        const varWithPrice = [0, ...rollingVaR.map(v => v * prices[prices.length - 1])]; // Scale VaR to price level
-        const volWithPrice = [0, ...rollingVolatility];
+        // Align arrays with dates (prepend 0 for first day with no return)
+        const fullVaR = [0, ...rollingVaR.map(v => v * prices[prices.length - 1])]; // Scale VaR to price
+        const fullVolatility = [0, ...rollingVolatility];
+        const fullDates = dates;
 
         if (varChart) varChart.destroy();
         if (volatilityChart) volatilityChart.destroy();
 
-        // VaR Chart
+        // VaR Chart with Price
         varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
             type: 'line',
             data: {
-                labels: dates,
+                labels: fullDates,
                 datasets: [
                     {
-                        label: 'Rolling VaR (95%)',
-                        data: varWithPrice,
+                        label: 'Rolling VaR (95%, 20-day)',
+                        data: fullVaR,
                         borderColor: '#ff9500',
                         fill: false,
-                        pointRadius: 3
+                        pointRadius: 0, // Cleaner line for long data
+                        borderWidth: 1
                     },
                     {
                         label: 'Price',
                         data: prices,
                         borderColor: '#fff',
                         fill: false,
-                        pointRadius: 3
+                        pointRadius: 0,
+                        borderWidth: 1
                     }
                 ]
             },
             options: {
-                scales: { y: { beginAtZero: false } },
+                scales: {
+                    x: { display: true, title: { display: true, text: 'Date' } },
+                    y: { beginAtZero: false, title: { display: true, text: 'Value ($)' } }
+                },
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true },
+                    tooltip: { mode: 'index', intersect: false }
+                }
             }
         });
 
@@ -123,27 +138,4 @@ async function fetchData() {
         volatilityChart = new Chart(document.getElementById('volatilityChart').getContext('2d'), {
             type: 'line',
             data: {
-                labels: dates,
-                datasets: [
-                    {
-                        label: 'Rolling Volatility',
-                        data: volWithPrice,
-                        borderColor: '#00cc00',
-                        fill: false,
-                        pointRadius: 3
-                    }
-                ]
-            },
-            options: {
-                scales: { y: { beginAtZero: true } },
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-
-    } catch (error) {
-        document.getElementById('financialData').innerHTML = `<p>Error: ${error.message}</p>`;
-    }
-}
-
-window.onload = displayLedger;
+                labels: full
