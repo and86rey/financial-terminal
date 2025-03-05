@@ -8,16 +8,20 @@ let currentDays = 30;
 async function waitForPyScript() {
     return new Promise((resolve) => {
         if (window.processMetrics) {
+            console.log('processMetrics already available');
             resolve();
         } else {
-            document.addEventListener('pyscript-ready', resolve, { once: true });
+            document.addEventListener('pyscript-ready', () => {
+                console.log('PyScript ready event fired');
+                resolve();
+            }, { once: true });
         }
     });
 }
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
-    requestLedger = [{ query, timestamp }]; // Keep only latest entry
+    requestLedger = [{ query, timestamp }]; // Keep only latest
     localStorage.setItem('requestLedger', JSON.stringify(requestLedger));
     displayLedger();
 }
@@ -286,24 +290,24 @@ function setDays(days) {
     updateCharts();
 }
 
-window.onload = () => {
+window.onload = async () => {
     console.log('Page loaded');
     displayLedger();
     const searchButton = document.getElementById('searchButton');
     const searchInput = document.getElementById('searchInput');
     if (searchButton) {
-        searchButton.addEventListener('click', () => {
+        searchButton.addEventListener('click', async () => {
             console.log('Search button clicked');
-            fetchData();
+            await fetchData(); // Wrap in async
         });
     } else {
         console.error('Search button not found');
     }
     if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
+        searchInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 console.log('Enter key pressed');
-                fetchData();
+                await fetchData(); // Wrap in async
             }
         });
     } else {
