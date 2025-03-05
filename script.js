@@ -2,7 +2,7 @@ let priceChart, varChart, volatilityChart;
 const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
-let currentDays = 30; // Default to 30 days
+let currentDays = 30;
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
@@ -20,38 +20,6 @@ function displayLedger() {
     }
 }
 
-function calculateRollingVaR(returns, windowSize = 20) {
-    const varValues = [];
-    for (let i = 0; i < returns.length; i++) {
-        const start = Math.max(0, i - windowSize + 1);
-        const window = returns.slice(start, i + 1);
-        if (window.length < 5) {
-            varValues.push(0);
-        } else {
-            const sortedWindow = [...window].sort((a, b) => a - b);
-            const var95 = sortedWindow[Math.floor(sortedWindow.length * 0.05)] * -1;
-            varValues.push(var95);
-        }
-    }
-    return varValues;
-}
-
-function calculateRollingVolatility(returns, windowSize = 20) {
-    const volValues = [];
-    for (let i = 0; i < returns.length; i++) {
-        const start = Math.max(0, i - windowSize + 1);
-        const window = returns.slice(start, i + 1);
-        if (window.length < 5) {
-            volValues.push(0);
-        } else {
-            const mean = window.reduce((a, b) => a + b, 0) / window.length;
-            const variance = window.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / window.length;
-            volValues.push(Math.sqrt(variance));
-        }
-    }
-    return volValues;
-}
-
 function updateCharts() {
     if (!fullDates.length) {
         console.warn('No data to chart');
@@ -66,7 +34,7 @@ function updateCharts() {
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    const tickInterval = Math.max(1, Math.floor(currentDays / 10)); // ~10 ticks
+    const tickInterval = Math.max(1, Math.floor(currentDays / 10));
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
     if (priceChart) priceChart.destroy();
@@ -236,13 +204,13 @@ async function fetchData() {
 
         fullDates = limitedData.map(d => d.date);
         fullPrices = limitedData.map(d => d.close);
-        const returns = fullPrices.slice(1).map((p, i) => (p - fullPrices[i]) / fullPrices[i]);
-        const rollingVaR = calculateRollingVaR(returns);
-        const rollingVolatility = calculateRollingVolatility(returns);
-        fullVaR = [0, ...rollingVaR.map(v => v * fullPrices[fullPrices.length - 1])];
-        fullVolatility = [0, ...rollingVolatility];
 
-        currentDays = 30; // Default to 30 days
+        // Call Python for metrics
+        const [rollingVaR, rollingVolatility] = await window.processMetrics(fullPrices);
+        fullVaR = rollingVaR;
+        fullVolatility = rollingVolatility;
+
+        currentDays = 30;
         document.getElementById('dayRange').value = currentDays;
         document.getElementById('dayCount').textContent = `${currentDays} days`;
         updateCharts();
