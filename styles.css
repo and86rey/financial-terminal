@@ -87,10 +87,10 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .graph-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Three equal columns */
-    grid-template-rows: 1fr; /* One row */
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr;
     gap: 10px;
-    height: 300px; /* Fixed height for all graphs */
+    height: 300px;
     background-color: #1a1a1a;
     margin: 10px 0;
 }
@@ -102,7 +102,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 canvas {
     width: 100% !important;
-    height: 250px !important; /* Fixed height, fits within 300px with title */
+    height: 250px !important;
     background-color: #000;
     padding: 5px;
     box-sizing: border-box;
@@ -121,10 +121,9 @@ canvas {
     background-color: #1a1a1a;
     padding: 10px;
     margin-top: 10px;
+    text-align: center;
 }
-#ledgerList {
-    list-style: none;
-    padding: 0;
+#ledgerEntry {
     font-size: 0.9em;
     color: #ccc;
 }
@@ -136,9 +135,9 @@ canvas {
     button { padding: 6px 10px; }
     .results-section, .ledger-section { padding: 5px; }
     .graph-grid {
-        grid-template-columns: 1fr; /* Stack on mobile */
+        grid-template-columns: 1fr;
         grid-template-rows: repeat(3, 1fr);
-        height: 750px; /* 3 × 250px */
+        height: 750px;
     }
     canvas { height: 200px !important; }
     input[type="range"] { width: 150px; }
