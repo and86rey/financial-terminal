@@ -69,11 +69,13 @@ function updateCharts() {
                 },
                 y: {
                     ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } }
+                    title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } },
+                    suggestedMin: Math.min(...visiblePrices) * 0.95, // Lock range
+                    suggestedMax: Math.max(...visiblePrices) * 1.05
                 }
             },
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true, // Lock aspect
             plugins: {
                 legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
@@ -109,11 +111,13 @@ function updateCharts() {
                 },
                 y: {
                     ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } }
+                    title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } },
+                    suggestedMin: Math.min(...visibleVaR) * 0.95,
+                    suggestedMax: Math.max(...visibleVaR) * 1.05
                 }
             },
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
@@ -149,11 +153,13 @@ function updateCharts() {
                 },
                 y: {
                     ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
-                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } }
+                    title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } },
+                    suggestedMin: Math.min(...visibleVolatility) * 0.95,
+                    suggestedMax: Math.max(...visibleVolatility) * 1.05
                 }
             },
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
@@ -199,62 +205,4 @@ async function fetchData() {
             <p>Company: ${profileData.companyName || 'N/A'}</p>
             <p>Ticker: ${profileData.symbol || 'N/A'}</p>
             <p>Price: $${profileData.price || 'N/A'}</p>
-            <p>Market Cap: $${profileData.mktCap || 'N/A'}</p>
-        `;
-
-        fullDates = limitedData.map(d => d.date);
-        fullPrices = limitedData.map(d => d.close);
-
-        // Call Python for metrics
-        const [rollingVaR, rollingVolatility] = await window.processMetrics(fullPrices);
-        fullVaR = rollingVaR;
-        fullVolatility = rollingVolatility;
-
-        currentDays = 30;
-        document.getElementById('dayRange').value = currentDays;
-        document.getElementById('dayCount').textContent = `${currentDays} days`;
-        updateCharts();
-
-    } catch (error) {
-        console.error('Fetch error:', error.message);
-        document.getElementById('financialData').innerHTML = `<p>Error: ${error.message}</p>`;
-    }
-}
-
-function updateDays(days) {
-    currentDays = parseInt(days);
-    document.getElementById('dayCount').textContent = `${currentDays} days`;
-    updateCharts();
-}
-
-function setDays(days) {
-    currentDays = days;
-    document.getElementById('dayRange').value = currentDays;
-    document.getElementById('dayCount').textContent = `${currentDays} days`;
-    updateCharts();
-}
-
-window.onload = () => {
-    console.log('Page loaded');
-    displayLedger();
-    const searchButton = document.getElementById('searchButton');
-    const searchInput = document.getElementById('searchInput');
-    if (searchButton) {
-        searchButton.addEventListener('click', () => {
-            console.log('Search button clicked');
-            fetchData();
-        });
-    } else {
-        console.error('Search button not found');
-    }
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                console.log('Enter key pressed');
-                fetchData();
-            }
-        });
-    } else {
-        console.error('Search input not found');
-    }
-};
+            <p>Market Cap: $${profileData.mktCap
