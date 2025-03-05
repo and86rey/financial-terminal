@@ -87,23 +87,22 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .graph-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+    grid-template-rows: 1fr; /* One row */
     gap: 10px;
-    position: sticky;
-    top: 10px;
-    height: 600px;
+    height: 300px; /* Fixed height for all graphs */
     background-color: #1a1a1a;
-    z-index: 10;
+    margin: 10px 0;
 }
 .graph-section {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background-color: #1a1a1a;
 }
 canvas {
     width: 100% !important;
-    height: 180px !important;
+    height: 250px !important; /* Fixed height, fits within 300px with title */
     background-color: #000;
     padding: 5px;
     box-sizing: border-box;
@@ -136,8 +135,12 @@ canvas {
     input[type="text"] { width: 60%; }
     button { padding: 6px 10px; }
     .results-section, .ledger-section { padding: 5px; }
-    .graph-grid { height: 450px; }
-    canvas { height: 135px !important; }
+    .graph-grid {
+        grid-template-columns: 1fr; /* Stack on mobile */
+        grid-template-rows: repeat(3, 1fr);
+        height: 750px; /* 3 × 250px */
+    }
+    canvas { height: 200px !important; }
     input[type="range"] { width: 150px; }
     .metric-box { flex-direction: column; gap: 5px; }
 }
