@@ -1,8 +1,8 @@
-let varChart, volatilityChart;
+let priceChart, varChart, volatilityChart;
 const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your FMP API key
 let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
 let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
-let zoomLevel = 1; // 1 = full view, higher = zoomed in
+let currentView = 'full'; // 'full' or 'month'
 
 function updateLedger(query) {
     const timestamp = new Date().toISOString();
@@ -50,7 +50,7 @@ function calculateRollingVolatility(returns, windowSize = 20) {
 
 function updateCharts() {
     const dataLength = fullDates.length;
-    const visibleDays = Math.floor(252 / zoomLevel); // Adjust visible range
+    const visibleDays = currentView === 'full' ? 252 : 21; // 252 for full year, 21 for last month
     const startIndex = Math.max(0, dataLength - visibleDays);
 
     const visibleDates = fullDates.slice(startIndex);
@@ -58,43 +58,61 @@ function updateCharts() {
     const visibleVaR = fullVaR.slice(startIndex);
     const visibleVolatility = fullVolatility.slice(startIndex);
 
-    // Set tick size (max 12 ticks)
-    const tickInterval = Math.ceil(visibleDates.length / 12);
+    // Default tick size: every 7 days for full view, every day for month view
+    const tickInterval = currentView === 'full' ? 7 : 1;
     const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
 
+    if (priceChart) priceChart.destroy();
     if (varChart) varChart.destroy();
     if (volatilityChart) volatilityChart.destroy();
+
+    priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: visibleDates,
+            datasets: [{
+                label: 'Price History',
+                data: visiblePrices,
+                borderColor: '#fff',
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: { maxTicksLimit: currentView === 'full' ? 36 : 21, callback: (value, index) => ticks[index] || '' },
+                    title: { display: true, text: 'Date' }
+                },
+                y: { beginAtZero: false, title: { display: true, text: 'Price ($)' } }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { tooltip: { mode: 'index', intersect: false } }
+        }
+    });
 
     varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
         type: 'line',
         data: {
             labels: visibleDates,
-            datasets: [
-                {
-                    label: 'Rolling VaR (95%, 20-day)',
-                    data: visibleVaR,
-                    borderColor: '#ff9500',
-                    fill: false,
-                    pointRadius: 0,
-                    borderWidth: 1
-                },
-                {
-                    label: 'Price',
-                    data: visiblePrices,
-                    borderColor: '#fff',
-                    fill: false,
-                    pointRadius: 0,
-                    borderWidth: 1
-                }
-            ]
+            datasets: [{
+                label: 'Rolling VaR (95%, 20-day)',
+                data: visibleVaR,
+                borderColor: '#ff9500',
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 1
+            }]
         },
         options: {
             scales: {
                 x: {
-                    ticks: { maxTicksLimit: 12, callback: (value, index) => ticks[index] || '' },
+                    ticks: { maxTicksLimit: currentView === 'full' ? 36 : 21, callback: (value, index) => ticks[index] || '' },
                     title: { display: true, text: 'Date' }
                 },
-                y: { beginAtZero: false, title: { display: true, text: 'Value ($)' } }
+                y: { beginAtZero: false, title: { display: true, text: 'VaR ($)' } }
             },
             responsive: true,
             maintainAspectRatio: false,
@@ -106,21 +124,19 @@ function updateCharts() {
         type: 'line',
         data: {
             labels: visibleDates,
-            datasets: [
-                {
-                    label: 'Rolling Volatility (20-day)',
-                    data: visibleVolatility,
-                    borderColor: '#00cc00',
-                    fill: false,
-                    pointRadius: 0,
-                    borderWidth: 1
-                }
-            ]
+            datasets: [{
+                label: 'Rolling Volatility (20-day)',
+                data: visibleVolatility,
+                borderColor: '#00cc00',
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 1
+            }]
         },
         options: {
             scales: {
                 x: {
-                    ticks: { maxTicksLimit: 12, callback: (value, index) => ticks[index] || '' },
+                    ticks: { maxTicksLimit: currentView === 'full' ? 36 : 21, callback: (value, index) => ticks[index] || '' },
                     title: { display: true, text: 'Date' }
                 },
                 y: { beginAtZero: true, title: { display: true, text: 'Volatility' } }
@@ -169,7 +185,7 @@ async function fetchData() {
         fullVaR = [0, ...rollingVaR.map(v => v * fullPrices[fullPrices.length - 1])];
         fullVolatility = [0, ...rollingVolatility];
 
-        zoomLevel = 1; // Reset zoom on new search
+        currentView = 'full'; // Default to full year
         updateCharts();
 
     } catch (error) {
@@ -178,13 +194,13 @@ async function fetchData() {
     }
 }
 
-function zoomIn() {
-    zoomLevel = Math.min(zoomLevel + 1, 5); // Max zoom level 5x
+function showLastMonth() {
+    currentView = 'month';
     updateCharts();
 }
 
-function zoomOut() {
-    zoomLevel = Math.max(zoomLevel - 1, 1); // Min zoom level 1x
+function showFullYear() {
+    currentView = 'full';
     updateCharts();
 }
 
