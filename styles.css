@@ -1,47 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Data Terminal</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Financial Data Terminal</h1>
-        <div class="input-section">
-            <input type="text" id="searchInput" placeholder="ISIN, Name, or Ticker (e.g., AAPL)">
-            <button id="searchButton">Search</button>
-        </div>
-        <div id="results" class="results-section">
-            <h2>Financial Data</h2>
-            <div id="financialData"></div>
-            <h2>Market Risk Metrics (Last 252 Trading Days)</h2>
-            <div class="chart-controls">
-                <button onclick="showLastMonth()">Last Month</button>
-                <button onclick="showFullYear()">Full Year</button>
-            </div>
-            <div class="graph-grid">
-                <div class="graph-section">
-                    <h3>Price History</h3>
-                    <canvas id="priceChart"></canvas>
-                </div>
-                <div class="graph-section">
-                    <h3>Rolling VaR (95%, 20-day)</h3>
-                    <canvas id="varChart"></canvas>
-                </div>
-                <div class="graph-section">
-                    <h3>Rolling Volatility (20-day)</h3>
-                    <canvas id="volatilityChart"></canvas>
-                </div>
-            </div>
-        </div>
-        <div id="ledger" class="ledger-section">
-            <h2>Request Ledger</h2>
-            <ul id="ledgerList"></ul>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+body {
+    background-color: #000;
+    color: #fff;
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    margin: 0;
+    padding: 10px;
+}
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+h1 {
+    color: #f5a623;
+    text-align: center;
+    font-size: 1.8em;
+    margin: 10px 0;
+}
+h2 {
+    color: #fff;
+    font-size: 1.4em;
+    margin: 10px 0;
+}
+h3 {
+    color: #f5a623;
+    font-size: 1.2em;
+    text-align: center;
+    margin: 5px 0;
+}
+.input-section {
+    margin: 10px 0;
+    text-align: center;
+}
+input {
+    padding: 8px;
+    width: 70%;
+    max-width: 300px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+    font-size: 1em;
+}
+button {
+    padding: 8px 15px;
+    background-color: #f5a623;
+    border: none;
+    color: #000;
+    cursor: pointer;
+    font-size: 1em;
+    margin: 0 5px;
+}
+button:hover {
+    background-color: #d9911e;
+}
+.results-section, .ledger-section {
+    background-color: #1a1a1a;
+    padding: 10px;
+    border-radius: 0;
+    margin-top: 10px;
+}
+.chart-controls {
+    text-align: center;
+    margin: 10px 0;
+}
+.graph-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 10px;
+    height: calc(100vh - 250px);
+    min-height: 600px;
+}
+.graph-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #1a1a1a;
+}
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #000;
+    padding: 5px;
+    box-sizing: border-box;
+}
+#ledgerList {
+    list-style: none;
+    padding: 0;
+    font-size: 0.9em;
+    color: #ccc;
+}
+@media (max-width: 600px) {
+    h1 { font-size: 1.4em; }
+    h2 { font-size: 1.2em; }
+    h3 { font-size: 1em; }
+    input { width: 60%; }
+    button { padding: 6px 10px; }
+    .results-section, .ledger-section { padding: 5px; }
+    .graph-grid { height: calc(100vh - 200px); min-height: 450px; }
+}
