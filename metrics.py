@@ -34,7 +34,7 @@ def calculate_sharpe_ratio(prices):
     std_dev = np.std(returns)
     risk_free_rate = 0.01 / 252  # 1% annual, daily
     sharpe = (mean_return - risk_free_rate) / std_dev if std_dev != 0 else 0
-    return sharpe * np.sqrt(252)  # Annualized
+    return sharpe * np.sqrt(252)
 
 def calculate_sortino_ratio(prices):
     returns = [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
@@ -43,11 +43,11 @@ def calculate_sortino_ratio(prices):
     downside_std = np.std(downside_returns) if downside_returns else 0
     risk_free_rate = 0.01 / 252
     sortino = (mean_return - risk_free_rate) / downside_std if downside_std != 0 else 0
-    return sortino * np.sqrt(252)  # Annualized
+    return sortino * np.sqrt(252)
 
 def calculate_moving_averages(prices):
-    short_window = 20  # 20-day SMA
-    long_window = 50   # 50-day SMA
+    short_window = 20
+    long_window = 50
     short_ma = []
     long_ma = []
     for i in range(len(prices)):
@@ -58,12 +58,14 @@ def calculate_moving_averages(prices):
     return short_ma, long_ma
 
 async def process_metrics(prices):
+    print("Processing metrics in Python...")  # Debug
     returns = [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
     rolling_var = calculate_rolling_var(returns)
     rolling_vol = calculate_rolling_volatility(returns)
     sharpe = calculate_sharpe_ratio(prices)
     sortino = calculate_sortino_ratio(prices)
     short_ma, long_ma = calculate_moving_averages(prices)
+    print("Python results:", rolling_var, rolling_vol, short_ma, long_ma)  # Debug
     document.getElementById("sharpeRatio").innerHTML = f"Sharpe Ratio (Annualized): {sharpe:.2f}"
     document.getElementById("sortinoRatio").innerHTML = f"Sortino Ratio (Annualized): {sortino:.2f}"
     return [0] + rolling_var, [0] + rolling_vol, short_ma, long_ma
