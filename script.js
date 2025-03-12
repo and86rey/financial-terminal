@@ -1,322 +1,70 @@
-let priceChart, varChart, volatilityChart;
-const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI'; // Replace with your key
-let requestLedger = JSON.parse(localStorage.getItem('requestLedger')) || [];
-let fullDates = [], fullPrices = [], fullVaR = [], fullVolatility = [];
-let shortMA = [], longMA = [];
-let currentDays = 30;
+const FMP_API_KEY = 'WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI';
+let portfolio = [];
 
-async function waitForPyScript() {
-    return new Promise((resolve) => {
-        console.log('Waiting for PyScript...');
-        if (window.processMetrics) {
-            console.log('processMetrics already available');
-            resolve();
-        } else {
-            document.addEventListener('pyscript-ready', () => {
-                console.log('PyScript ready event fired');
-                resolve();
-            }, { once: true });
-        }
-    });
-}
+document.getElementById('searchButton').addEventListener('click', fetchSecurity);
+document.getElementById('calculateVar').addEventListener('click', calculatePortfolioVar);
 
-function updateLedger(query) {
-    const timestamp = new Date().toISOString();
-    requestLedger = [{ query, timestamp }];
-    localStorage.setItem('requestLedger', JSON.stringify(requestLedger));
-    displayLedger();
-}
-
-function displayLedger() {
-    const ledgerEntry = document.getElementById('ledgerEntry');
-    if (ledgerEntry) {
-        ledgerEntry.textContent = requestLedger.length ? `${requestLedger[0].query} - ${requestLedger[0].timestamp}` : '';
-    } else {
-        console.error('Ledger entry element not found');
-    }
-}
-
-function updateCharts() {
-    console.log('Updating charts...');
-    console.log('fullDates:', fullDates);
-    console.log('fullPrices:', fullPrices);
-    console.log('fullVaR:', fullVaR);
-    console.log('fullVolatility:', fullVolatility);
-    console.log('shortMA:', shortMA);
-    console.log('longMA:', longMA);
-
-    if (!fullDates.length || !fullPrices.length || !fullVaR.length || !fullVolatility.length) {
-        console.warn('Missing data for charts');
-        return;
-    }
-
-    const dataLength = fullDates.length;
-    const startIndex = Math.max(0, dataLength - currentDays);
-
-    const visibleDates = fullDates.slice(startIndex);
-    const visiblePrices = fullPrices.slice(startIndex);
-    const visibleVaR = fullVaR.slice(startIndex);
-    const visibleVolatility = fullVolatility.slice(startIndex);
-    const visibleShortMA = shortMA.slice(startIndex);
-    const visibleLongMA = longMA.slice(startIndex);
-
-    const tickInterval = Math.max(1, Math.floor(currentDays / 10));
-    const ticks = visibleDates.filter((_, i) => i % tickInterval === 0);
-
-    if (priceChart) priceChart.destroy();
-    if (varChart) varChart.destroy();
-    if (volatilityChart) volatilityChart.destroy();
-
-    try {
-        priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: visibleDates,
-                datasets: [
-                    {
-                        label: 'Price',
-                        data: visiblePrices,
-                        borderColor: '#fff',
-                        fill: false,
-                        pointRadius: 2,
-                        borderWidth: 2
-                    },
-                    {
-                        label: '20-day MA',
-                        data: visibleShortMA,
-                        borderColor: '#f5a623',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1,
-                        borderDash: [5, 5]
-                    },
-                    {
-                        label: '50-day MA',
-                        data: visibleLongMA,
-                        borderColor: '#00cc00',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1,
-                        borderDash: [5, 5]
-                    }
-                ]
-            },
-            options: {
-                scales: {
-                    x: {
-                        ticks: {
-                            maxTicksLimit: 10,
-                            callback: (value, index) => ticks[index] || '',
-                            color: '#fff',
-                            font: { size: 12, family: 'Arial' },
-                            maxRotation: 45,
-                            minRotation: 45
-                        },
-                        title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
-                    },
-                    y: {
-                        ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                        title: { display: true, text: 'Price ($)', color: '#fff', font: { size: 14 } }
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { display: true, labels: { color: '#fff', font: { size: 12 } } },
-                    tooltip: { mode: 'index', intersect: false }
-                }
-            }
-        });
-
-        varChart = new Chart(document.getElementById('varChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: visibleDates,
-                datasets: [{
-                    label: 'VaR',
-                    data: visibleVaR,
-                    borderColor: '#f5a623',
-                    fill: false,
-                    pointRadius: 2,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                scales: {
-                    x: {
-                        ticks: {
-                            maxTicksLimit: 10,
-                            callback: (value, index) => ticks[index] || '',
-                            color: '#fff',
-                            font: { size: 12, family: 'Arial' },
-                            maxRotation: 45,
-                            minRotation: 45
-                        },
-                        title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
-                    },
-                    y: {
-                        ticks: { color: '#fff', font: { size: 12 }, callback: value => `$${value.toFixed(2)}` },
-                        title: { display: true, text: 'VaR ($)', color: '#fff', font: { size: 14 } }
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { mode: 'index', intersect: false }
-                }
-            }
-        });
-
-        volatilityChart = new Chart(document.getElementById('volatilityChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: visibleDates,
-                datasets: [{
-                    label: 'Volatility',
-                    data: visibleVolatility,
-                    borderColor: '#00cc00',
-                    fill: false,
-                    pointRadius: 2,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                scales: {
-                    x: {
-                        ticks: {
-                            maxTicksLimit: 10,
-                            callback: (value, index) => ticks[index] || '',
-                            color: '#fff',
-                            font: { size: 12, family: 'Arial' },
-                            maxRotation: 45,
-                            minRotation: 45
-                        },
-                        title: { display: true, text: 'Date', color: '#fff', font: { size: 14 } }
-                    },
-                    y: {
-                        ticks: { color: '#fff', font: { size: 12 }, callback: value => value.toFixed(4) },
-                        title: { display: true, text: 'Volatility', color: '#fff', font: { size: 14 } }
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { mode: 'index', intersect: false }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Chart rendering error:', error);
-    }
-}
-
-async function fetchData() {
+async function fetchSecurity() {
     const query = document.getElementById('searchInput').value.trim();
-    if (!query) {
-        console.log('No query entered');
+    if (!query) return;
+    
+    const url = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.length) {
+        displaySearchResult(data[0]);
+    } else {
+        document.getElementById('searchResults').innerHTML = `<p>No results found.</p>`;
+    }
+}
+
+function displaySearchResult(stock) {
+    document.getElementById('searchResults').innerHTML = `
+        <p>${stock.companyName} (${stock.symbol}) - Price: $${stock.price}</p>
+        <input type="number" id="weightInput" placeholder="Enter weight %" min="1" max="100">
+        <button onclick="addToPortfolio('${stock.symbol}', '${stock.companyName}')">Add to Portfolio</button>
+    `;
+}
+
+function addToPortfolio(symbol, name) {
+    if (portfolio.length >= 5) {
+        alert("This is a demo version. Maximum 5 securities allowed.");
         return;
     }
-
-    console.log('Fetching data for:', query);
-
-    try {
-        updateLedger(query);
-
-        const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
-        const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${query}?serietype=line&apikey=${FMP_API_KEY}`;
-
-        const [profileRes, historicalRes] = await Promise.all([
-            fetch(profileUrl).then(res => {
-                if (!res.ok) throw new Error(`Profile API failed: ${res.status}`);
-                return res.json();
-            }),
-            fetch(historicalUrl).then(res => {
-                if (!res.ok) throw new Error(`Historical API failed: ${res.status}`);
-                return res.json();
-            })
-        ]);
-
-        const profileData = profileRes[0] || {};
-        const historicalData = historicalRes.historical || [];
-        if (!historicalData.length) throw new Error('No historical data returned');
-
-        const limitedData = historicalData.slice(0, Math.min(252, historicalData.length)).reverse();
-        if (limitedData.length < 2) throw new Error('Insufficient historical data');
-
-        document.getElementById('financialData').innerHTML = `
-            <p>Company: ${profileData.companyName || 'N/A'}</p>
-            <p>Ticker: ${profileData.symbol || 'N/A'}</p>
-            <p>Price: $${profileData.price || 'N/A'}</p>
-            <p>Market Cap: $${profileData.mktCap || 'N/A'}</p>
-        `;
-
-        fullDates = limitedData.map(d => d.date);
-        fullPrices = limitedData.map(d => d.close);
-
-        await waitForPyScript();
-        if (!window.processMetrics) {
-            throw new Error('processMetrics not available after PyScript load');
-        }
-        const metricsResult = await window.processMetrics(fullPrices);
-        console.log('Raw metrics result:', metricsResult);
-        fullVaR = metricsResult[0];
-        fullVolatility = metricsResult[1];
-        shortMA = metricsResult[2];
-        longMA = metricsResult[3];
-
-        console.log('Post-Python data:', { fullVaR, fullVolatility, shortMA, longMA });
-
-        currentDays = 30;
-        document.getElementById('dayRange').value = currentDays;
-        document.getElementById('dayCount').textContent = `${currentDays} days`;
-        updateCharts();
-
-    } catch (error) {
-        console.error('Fetch error:', error.message);
-        document.getElementById('financialData').innerHTML = `<p>Error: ${error.message}</p>`;
-    }
+    
+    const weight = parseFloat(document.getElementById('weightInput').value);
+    if (isNaN(weight) || weight <= 0 || weight > 100) return;
+    
+    portfolio.push({ symbol, name, weight });
+    updatePortfolioTable();
 }
 
-function updateDays(days) {
-    currentDays = parseInt(days);
-    document.getElementById('dayCount').textContent = `${currentDays} days`;
-    updateCharts();
+function updatePortfolioTable() {
+    const table = document.getElementById('portfolioTable');
+    table.innerHTML = portfolio.map((stock, index) => `
+        <tr>
+            <td>${stock.name} (${stock.symbol})</td>
+            <td>${stock.weight}%</td>
+            <td><button onclick="removeFromPortfolio(${index})">Remove</button></td>
+        </tr>
+    `).join('');
 }
 
-function setDays(days) {
-    currentDays = days;
-    document.getElementById('dayRange').value = currentDays;
-    document.getElementById('dayCount').textContent = `${currentDays} days`;
-    updateCharts();
+function removeFromPortfolio(index) {
+    portfolio.splice(index, 1);
+    updatePortfolioTable();
 }
 
-window.onload = () => {
-    console.log('Page loaded');
-    console.log('HTML loaded. Waiting for PyScript...');
-    document.addEventListener('pyscript-ready', () => {
-        console.log('PyScript loaded, metrics.py should be available');
-    });
-    displayLedger();
-    const searchButton = document.getElementById('searchButton');
-    const searchInput = document.getElementById('searchInput');
-    if (searchButton) {
-        searchButton.addEventListener('click', async () => {
-            console.log('Search button clicked');
-            await fetchData();
-        });
-    } else {
-        console.error('Search button not found');
-    }
-    if (searchInput) {
-        searchInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                console.log('Enter key pressed');
-                await fetchData();
-            }
-        });
-    } else {
-        console.error('Search input not found');
-    }
-};
+async function calculatePortfolioVar() {
+    if (portfolio.length === 0) return;
+    
+    const symbols = portfolio.map(stock => stock.symbol);
+    const weights = portfolio.map(stock => stock.weight / 100);
+    const url = `https://your_api_endpoint/calculate_var?symbols=${symbols.join(',')}&weights=${weights.join(',')}`;
+    
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    document.getElementById('varResult').innerText = `Portfolio VaR: ${result.portfolioVar}`;
+}
