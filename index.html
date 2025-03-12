@@ -9,6 +9,22 @@
 <body>
     <div class="container">
         <h1>Portfolio Risk Analyzer</h1>
+        
+        <!-- ✅ Added Short Description -->
+        <p class="description">
+            This tool allows you to build a simple portfolio (up to 5 securities) 
+            and analyze its risk exposure using Value at Risk (VaR). 
+            You can add stocks by entering their ticker, ISIN, or company name, 
+            allocate portfolio weights, and calculate risk metrics at different confidence levels.
+        </p>
+
+        <!-- ✅ Added Disclaimer -->
+        <p class="disclaimer">
+            ⚠️ This service is built on limited free licenses for demo purposes only. 
+            It leverages the FRM API, which has limited securities coverage. 
+            Performance and data availability may be restricted.
+        </p>
+
         <div class="input-section">
             <input type="text" id="searchInput" placeholder="Enter ISIN, Company Name, or Ticker">
             <button id="searchButton">Search</button>
