@@ -57,11 +57,6 @@ function updatePortfolioTable() {
     `).join('');
 }
 
-function removeFromPortfolio(index) {
-    portfolio.splice(index, 1);
-    updatePortfolioTable();
-}
-
 async function calculatePortfolioVar() {
     if (!window.processPortfolioVar) {
         console.error("❌ PyScript function not found!");
