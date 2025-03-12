@@ -23,11 +23,20 @@
                 </thead>
                 <tbody id="portfolioTable"></tbody>
             </table>
-            <button id="calculateVar">Calculate Portfolio VaR</button>
+            <button id="calculateVar" disabled>Calculate Portfolio VaR</button>
             <p id="varResult"></p>
         </div>
     </div>
-    <script src="script.js"></script>
+    
     <py-script src="metrics.py"></py-script>
+    
+    <script src="script.js"></script>
+
+    <script>
+        document.addEventListener('pyscript-ready', () => {
+            console.log('✅ PyScript loaded successfully');
+            document.getElementById('calculateVar').disabled = false;
+        });
+    </script>
 </body>
 </html>
