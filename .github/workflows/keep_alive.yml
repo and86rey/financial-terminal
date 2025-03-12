@@ -1,12 +1,16 @@
-name: Keep Render API Alive
-
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Runs every 10 minutes
+    - cron: '*/1 * * * *'  # Runs every 1 minute
 
 jobs:
-  keep_alive:
+  keep_alive_1:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Render API
-        run: curl -s https://financial-terminal.onrender.com/calculate_var
+        run: curl -s https://financial-terminal.onrender.com
+
+  keep_alive_2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render API (Delayed)
+        run: sleep 30 && curl -s https://financial-terminal.onrender.com
