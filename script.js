@@ -47,32 +47,48 @@ function addToPortfolio(symbol, name) {
     updatePortfolioTable();
 }
 
+function removeFromPortfolio(index) {
+    portfolio.splice(index, 1);  // ✅ Remove the selected stock
+    updatePortfolioTable();  // ✅ Re-render portfolio table
+    document.getElementById("varResult").innerText = "Portfolio updated. Recalculate VaR.";  // ✅ Notify user
+}
+
 function updatePortfolioTable() {
     const table = document.getElementById("portfolioTable");
-    table.innerHTML = portfolio.map((stock, index) => `
-        <tr>
+    table.innerHTML = "";  // ✅ Clear existing table
+
+    portfolio.forEach((stock, index) => {
+        let row = table.insertRow();
+        row.innerHTML = `
             <td>${stock.name} (${stock.symbol})</td>
             <td>${stock.weight}%</td>
             <td><button onclick="removeFromPortfolio(${index})">Remove</button></td>
-        </tr>
-    `).join("");
+        `;
+    });
 }
 
 async function calculatePortfolioVar() {
     if (portfolio.length === 0) {
-        document.getElementById("varResult").innerText = "Portfolio is empty.";
+        document.getElementById("varResult").innerText = "Portfolio is empty. Add stocks first.";
         return;
     }
 
     const symbols = portfolio.map(stock => stock.symbol);
     const weights = portfolio.map(stock => stock.weight / 100);
 
-    const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbols, weights })
-    });
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ symbols, weights })
+        });
 
-    const result = await response.json();
-    document.getElementById("varResult").innerText = `Portfolio VaR: ${result.portfolio_var}`;
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+
+        const result = await response.json();
+        document.getElementById("varResult").innerText = `Portfolio VaR: ${result.portfolio_var}`;
+    } catch (error) {
+        console.error("Error calculating Portfolio VaR:", error);
+        document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
+    }
 }
