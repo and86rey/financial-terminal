@@ -3,58 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Data Terminal</title>
+    <title>Portfolio Risk Analyzer</title>
     <link rel="stylesheet" href="styles.css">
     <script defer src="https://pyscript.net/releases/2023.11.1/core.js"></script>
-    <style>
-        body { background: #000; color: #fff; font-family: Arial, sans-serif; margin: 0; }
-        h1 { color: #f5a623; text-align: center; }
-    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Financial Data Terminal</h1>
+        <h1>Portfolio Risk Analyzer</h1>
         <div class="input-section">
-            <input type="text" id="searchInput" placeholder="ISIN, Name, or Ticker (e.g., AAPL)">
+            <input type="text" id="searchInput" placeholder="Enter ISIN, Company Name, or Ticker">
             <button id="searchButton">Search</button>
         </div>
-        <div id="results" class="results-section">
-            <h2>Financial Data</h2>
-            <div id="financialData"></div>
-            <h2>Market Risk Metrics (Last 252 Trading Days)</h2>
-            <div class="chart-controls">
-                <button onclick="setDays(7)">7 Days</button>
-                <button onclick="setDays(30)">Last Month</button>
-                <button onclick="setDays(252)">Full Year</button>
-                <input type="range" id="dayRange" min="7" max="252" value="30" step="1" oninput="updateDays(this.value)">
-                <span id="dayCount">30 days</span>
-            </div>
-            <div class="graph-grid">
-                <div class="graph-section">
-                    <h3>Price History</h3>
-                    <canvas id="priceChart"></canvas>
-                </div>
-                <div class="graph-section">
-                    <h3>Rolling VaR (95%, 20-day)</h3>
-                    <canvas id="varChart"></canvas>
-                </div>
-                <div class="graph-section">
-                    <h3>Rolling Volatility (20-day)</h3>
-                    <canvas id="volatilityChart"></canvas>
-                </div>
-            </div>
-            <div id="metrics" class="metric-box">
-                <span id="sharpeRatio"></span>
-                <span id="sortinoRatio"></span>
-            </div>
-        </div>
-        <div id="ledger" class="ledger-section">
-            <h2>Request Ledger</h2>
-            <span id="ledgerEntry"></span>
+        <div id="searchResults" class="results-section"></div>
+        <div id="portfolio" class="portfolio-section">
+            <h2>Portfolio (Max 5 Securities)</h2>
+            <table>
+                <thead>
+                    <tr><th>Security</th><th>Weight (%)</th><th>Action</th></tr>
+                </thead>
+                <tbody id="portfolioTable"></tbody>
+            </table>
+            <button id="calculateVar">Calculate Portfolio VaR</button>
+            <p id="varResult"></p>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="script.js"></script>
-    <py-script src="./metrics.py"></py-script>
+    <py-script src="metrics.py"></py-script>
 </body>
 </html>
