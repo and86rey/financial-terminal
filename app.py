@@ -1,9 +1,19 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import numpy as np
 from pydantic import BaseModel
 
 app = FastAPI()
+
+# ✅ Enable CORS to allow GitHub Pages frontend to access Render API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://and86rey.github.io"],  # Allow only your GitHub Pages
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"
 
