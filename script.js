@@ -63,34 +63,18 @@ function removeFromPortfolio(index) {
 }
 
 async function calculatePortfolioVar() {
-    if (portfolio.length === 0) {
-        document.getElementById('varResult').innerText = "Portfolio is empty.";
+    if (!window.processPortfolioVar) {
+        console.error("❌ PyScript function not found!");
+        document.getElementById('varResult').innerText = "Error: PyScript function unavailable.";
         return;
     }
 
     const symbols = portfolio.map(stock => stock.symbol);
     const weights = portfolio.map(stock => stock.weight / 100);
 
-    console.log("Sending symbols:", symbols);
-    console.log("Sending weights:", weights);
+    console.log("📡 Sending symbols:", symbols);
+    console.log("📊 Sending weights:", weights);
 
-    if (!window.processPortfolioVar) {
-        console.error("PyScript function not found!");
-        document.getElementById('varResult').innerText = "Error: PyScript function unavailable.";
-        return;
-    }
-
-    try {
-        const result = await window.processPortfolioVar(symbols, weights);
-        console.log("Received Portfolio VaR:", result);
-        document.getElementById('varResult').innerText = `Portfolio VaR: ${result.toFixed(2)}`;
-    } catch (error) {
-        console.error("Error in Portfolio VaR Calculation:", error);
-        document.getElementById('varResult').innerText = "Error in VaR calculation.";
-    }
+    const result = await window.processPortfolioVar(symbols, weights);
+    document.getElementById('varResult').innerText = `📉 Portfolio VaR: ${result.toFixed(2)}`;
 }
-
-window.onload = () => {
-    document.getElementById('searchButton').addEventListener('click', fetchSecurity);
-    document.getElementById('calculateVar').addEventListener('click', calculatePortfolioVar);
-};
