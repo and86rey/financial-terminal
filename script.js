@@ -7,15 +7,21 @@ document.getElementById('calculateVar').addEventListener('click', calculatePortf
 async function fetchSecurity() {
     const query = document.getElementById('searchInput').value.trim();
     if (!query) return;
-    
+
     const url = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.length) {
-        displaySearchResult(data[0]);
-    } else {
-        document.getElementById('searchResults').innerHTML = `<p>No results found.</p>`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        const data = await response.json();
+
+        if (data.length) {
+            displaySearchResult(data[0]);
+        } else {
+            document.getElementById('searchResults').innerHTML = `<p>No results found.</p>`;
+        }
+    } catch (error) {
+        console.error("Error fetching security:", error);
+        document.getElementById('searchResults').innerHTML = `<p>Error fetching security.</p>`;
     }
 }
 
@@ -32,10 +38,10 @@ function addToPortfolio(symbol, name) {
         alert("This is a demo version. Maximum 5 securities allowed.");
         return;
     }
-    
+
     const weight = parseFloat(document.getElementById('weightInput').value);
     if (isNaN(weight) || weight <= 0 || weight > 100) return;
-    
+
     portfolio.push({ symbol, name, weight });
     updatePortfolioTable();
 }
@@ -57,14 +63,34 @@ function removeFromPortfolio(index) {
 }
 
 async function calculatePortfolioVar() {
-    if (portfolio.length === 0) return;
-    
+    if (portfolio.length === 0) {
+        document.getElementById('varResult').innerText = "Portfolio is empty.";
+        return;
+    }
+
     const symbols = portfolio.map(stock => stock.symbol);
     const weights = portfolio.map(stock => stock.weight / 100);
-    const url = `https://your_api_endpoint/calculate_var?symbols=${symbols.join(',')}&weights=${weights.join(',')}`;
-    
-    const response = await fetch(url);
-    const result = await response.json();
-    
-    document.getElementById('varResult').innerText = `Portfolio VaR: ${result.portfolioVar}`;
+
+    console.log("Sending symbols:", symbols);
+    console.log("Sending weights:", weights);
+
+    if (!window.processPortfolioVar) {
+        console.error("PyScript function not found!");
+        document.getElementById('varResult').innerText = "Error: PyScript function unavailable.";
+        return;
+    }
+
+    try {
+        const result = await window.processPortfolioVar(symbols, weights);
+        console.log("Received Portfolio VaR:", result);
+        document.getElementById('varResult').innerText = `Portfolio VaR: ${result.toFixed(2)}`;
+    } catch (error) {
+        console.error("Error in Portfolio VaR Calculation:", error);
+        document.getElementById('varResult').innerText = "Error in VaR calculation.";
+    }
 }
+
+window.onload = () => {
+    document.getElementById('searchButton').addEventListener('click', fetchSecurity);
+    document.getElementById('calculateVar').addEventListener('click', calculatePortfolioVar);
+};
