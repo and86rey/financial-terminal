@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio Risk Analyzer</title>
     <link rel="stylesheet" href="styles.css">
-    <script defer src="https://pyscript.net/releases/2023.11.1/core.js"></script>
 </head>
 <body>
     <div class="container">
@@ -23,20 +22,10 @@
                 </thead>
                 <tbody id="portfolioTable"></tbody>
             </table>
-            <button id="calculateVar" disabled>Calculate Portfolio VaR</button>
+            <button id="calculateVar">Calculate Portfolio VaR</button>
             <p id="varResult"></p>
         </div>
     </div>
-    
-    <py-script src="metrics.py"></py-script>
-    
     <script src="script.js"></script>
-
-    <script>
-        document.addEventListener('pyscript-ready', () => {
-            console.log('✅ PyScript loaded successfully');
-            document.getElementById('calculateVar').disabled = false;
-        });
-    </script>
 </body>
 </html>
