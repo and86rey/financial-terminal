@@ -67,4 +67,9 @@ def register_pyscript_function():
     window.processPortfolioVar = process_portfolio_var
     print("✅ PyScript function registered successfully")
 
-document.addEventListener('pyscript-ready', register_pyscript_function)
+async def setup():
+    await asyncio.sleep(1)  # Ensure PyScript is ready
+    register_pyscript_function()
+
+asyncio.ensure_future(setup())
+
