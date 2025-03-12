@@ -86,7 +86,28 @@ async function calculatePortfolioVar() {
         if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
 
         const result = await response.json();
-        document.getElementById("varResult").innerText = `Portfolio VaR: ${result.portfolio_var}`;
+        
+        if (!result.VaR_Table || result.VaR_Table.length === 0) {
+            document.getElementById("varResult").innerText = "Error: No VaR data received.";
+            return;
+        }
+
+        // ✅ Format VaR Table for Display
+        let varTableHtml = `<table border="1">
+            <tr><th>Horizon</th><th>Confidence Level</th><th>VaR (%)</th></tr>`;
+        
+        result.VaR_Table.forEach(row => {
+            varTableHtml += `<tr>
+                <td>${row.horizon}</td>
+                <td>${row.confidence_level}</td>
+                <td>${row.VaR}</td>
+            </tr>`;
+        });
+
+        varTableHtml += `</table>`;
+
+        document.getElementById("varResult").innerHTML = varTableHtml;
+
     } catch (error) {
         console.error("Error calculating Portfolio VaR:", error);
         document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
