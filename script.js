@@ -81,6 +81,8 @@ async function calculatePortfolioVar() {
     const symbols = portfolio.map(stock => stock.symbol);
     const weights = portfolio.map(stock => stock.weight / 100);
 
+    console.log("🔍 Sending API Request with:", { symbols, weights }); // ✅ Debug Request
+
     try {
         const response = await fetch(API_URL, {
             method: "POST",
@@ -92,7 +94,7 @@ async function calculatePortfolioVar() {
 
         const result = await response.json();
         
-        console.log("Full API Response:", result); // ✅ Debugging API response
+        console.log("📩 Full API Response:", result); // ✅ Debugging API response
 
         if (!result.VaR_Table || result.VaR_Table.length === 0) {
             document.getElementById("varResult").innerText = "Error: No VaR data received.";
@@ -100,11 +102,11 @@ async function calculatePortfolioVar() {
         }
 
         // ✅ Extract Portfolio VaR & Individual Security VaRs
-        let portfolioVar = result.portfolio_VaR || 0; // ✅ Ensure this field is received from API
-        let securityVars = result.security_VaRs || []; // ✅ Ensure this contains all securities
+        let portfolioVar = result.portfolio_VaR ?? 0; // ✅ Ensure portfolio_VaR is included
+        let securityVars = result.security_VaRs ?? []; // ✅ Ensure this contains all securities
 
         if (securityVars.length !== symbols.length) {
-            console.warn("Mismatch in expected securities VaRs. Debug API response.");
+            console.warn("⚠️ Mismatch in expected securities VaRs. Debug API response.");
             console.log("Expected:", symbols.length, "Received:", securityVars.length, "Data:", securityVars);
         }
 
