@@ -92,6 +92,8 @@ async function calculatePortfolioVar() {
 
         const result = await response.json();
         
+        console.log("Full API Response:", result); // ✅ Debugging API response
+
         if (!result.VaR_Table || result.VaR_Table.length === 0) {
             document.getElementById("varResult").innerText = "Error: No VaR data received.";
             return;
@@ -103,6 +105,12 @@ async function calculatePortfolioVar() {
 
         if (securityVars.length !== symbols.length) {
             console.warn("Mismatch in expected securities VaRs. Debug API response.");
+            console.log("Expected:", symbols.length, "Received:", securityVars.length, "Data:", securityVars);
+        }
+
+        // ✅ Handle Missing VaRs
+        while (securityVars.length < symbols.length) {
+            securityVars.push(0); // Fill missing values with 0
         }
 
         // ✅ Maintain ticker order and append portfolio at the end
