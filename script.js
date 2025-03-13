@@ -1,6 +1,11 @@
 const API_URL = "https://financial-terminal.onrender.com/calculate_var";
-const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI";
+const FMP_API_KEY = "your_api_key";
 let portfolio = [];
+
+// ✅ Load Chart.js dynamically
+const script = document.createElement("script");
+script.src = "https://cdn.jsdelivr.net/npm/chart.js";
+document.head.appendChild(script);
 
 document.getElementById("searchButton").addEventListener("click", fetchSecurity);
 document.getElementById("calculateVar").addEventListener("click", calculatePortfolioVar);
@@ -48,14 +53,14 @@ function addToPortfolio(symbol, name) {
 }
 
 function removeFromPortfolio(index) {
-    portfolio.splice(index, 1);  // ✅ Remove the selected stock
-    updatePortfolioTable();  // ✅ Re-render portfolio table
-    document.getElementById("varResult").innerText = "Portfolio updated. Recalculate VaR.";  // ✅ Notify user
+    portfolio.splice(index, 1);  
+    updatePortfolioTable();  
+    document.getElementById("varResult").innerText = "Portfolio updated. Recalculate VaR.";
 }
 
 function updatePortfolioTable() {
     const table = document.getElementById("portfolioTable");
-    table.innerHTML = "";  // ✅ Clear existing table
+    table.innerHTML = "";  
 
     portfolio.forEach((stock, index) => {
         let row = table.insertRow();
@@ -105,11 +110,47 @@ async function calculatePortfolioVar() {
         });
 
         varTableHtml += `</table>`;
-
         document.getElementById("varResult").innerHTML = varTableHtml;
+
+        // ✅ Generate Graph Data
+        const labels = result.VaR_Table.map(row => `${row.horizon} (${row.confidence_level})`);
+        const data = result.VaR_Table.map(row => row.VaR);
+
+        updateVarChart(labels, data);
 
     } catch (error) {
         console.error("Error calculating Portfolio VaR:", error);
         document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
     }
+}
+
+// ✅ Function to Update Chart
+function updateVarChart(labels, data) {
+    const ctx = document.getElementById("varChart").getContext("2d");
+    
+    if (window.varChartInstance) {
+        window.varChartInstance.destroy();
+    }
+
+    window.varChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Portfolio VaR (%)",
+                data: data,
+                backgroundColor: "rgba(75, 192, 192, 0.6)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }
