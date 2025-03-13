@@ -1,5 +1,5 @@
 const API_URL = "https://financial-terminal.onrender.com/calculate_var";
-const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"; // Replace with your actual API key
+const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"; // ✅ Correct API Key
 let portfolio = [];
 
 // ✅ Load Chart.js dynamically
@@ -53,14 +53,14 @@ function addToPortfolio(symbol, name) {
 }
 
 function removeFromPortfolio(index) {
-    portfolio.splice(index, 1);  
-    updatePortfolioTable();  
+    portfolio.splice(index, 1);
+    updatePortfolioTable();
     document.getElementById("varResult").innerText = "Portfolio updated. Recalculate VaR.";
 }
 
 function updatePortfolioTable() {
     const table = document.getElementById("portfolioTable");
-    table.innerHTML = "";  
+    table.innerHTML = "";
 
     portfolio.forEach((stock, index) => {
         let row = table.insertRow();
@@ -82,70 +82,4 @@ async function calculatePortfolioVar() {
     const weights = portfolio.map(stock => stock.weight / 100);
 
     try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols, weights })
-        });
-
-        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-
-        const result = await response.json();
-        
-        if (!result.VaR_Table || result.VaR_Table.length === 0) {
-            document.getElementById("varResult").innerText = "Error: No VaR data received.";
-            return;
-        }
-
-        // ✅ Extract Portfolio VaR & Individual Security VaR
-        let portfolioVar = result.VaR_Table.find(row => row.horizon === "1 day(s)" && row.confidence_level === "95%")?.VaR || 0;
-        let securityVars = result.security_VaRs || []; // New API field needed
-
-        // ✅ Keep ticker order and append portfolio at the end
-        const labels = [...symbols, "Portfolio"];
-        const data = [...securityVars, portfolioVar];
-
-        updateVarChart(labels, data);
-
-    } catch (error) {
-        console.error("Error calculating Portfolio VaR:", error);
-        document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
-    }
-}
-
-// ✅ Function to Update Horizontal Bar Chart
-function updateVarChart(labels, data) {
-    const ctx = document.getElementById("varChart").getContext("2d");
-
-    // Destroy previous chart instance if it exists
-    if (window.varChartInstance) {
-        window.varChartInstance.destroy();
-    }
-
-    window.varChartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: labels, // Ticker symbols + "Portfolio" at the end
-            datasets: [{
-                label: "VaR (%) - Securities & Portfolio",
-                data: data,
-                backgroundColor: ["#3399ff", "#33cc33", "#ffcc00", "#cc33ff", "#ff6600", "#ff5733"], // Distinct colors
-                borderColor: "#ffffff",
-                borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: "y", // ✅ Makes the bars horizontal
-            responsive: true,
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    title: { display: true, text: "Value at Risk (%)" }
-                },
-                y: {
-                    title: { display: true, text: "Securities & Portfolio" }
-                }
-            }
-        }
-    });
-}
+        cons
