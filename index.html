@@ -25,43 +25,18 @@
                 <tbody id="portfolioTable"></tbody>
             </table>
             <button id="calculateVar">Calculate Portfolio VaR</button>
-            <div id="varResult"></div>
         </div>
 
-        <!-- ✅ Added VaR Visualization -->
+        <!-- ✅ VaR Calculation Table -->
+        <div id="varResult" class="var-table"></div>
+
+        <!-- ✅ VaR Visualization Graph -->
         <div class="chart-container">
             <h2>Portfolio Risk Visualization</h2>
             <canvas id="varChart"></canvas>
         </div>
 
-        <!-- ✅ Moved Disclaimer & Description to Bottom -->
-        <div class="disclaimer-section">
-            <h2>Disclaimer</h2>
-            <p>
-                This service is built on limited free licenses for demo purposes only. 
-                It uses the Financial Modeling Prep (FMP) API, which has restricted securities coverage. 
-                Performance and data availability may be limited.
-            </p>
-            <p>
-                The project is developed using FastAPI (Python) for backend processing, 
-                JavaScript for frontend logic, and the FMP API for financial data retrieval. 
-                Risk calculations, including Value at Risk (VaR), are performed with NumPy and SciPy.  
-                The interface is built with HTML, CSS, and JavaScript to ensure real-time interactivity.
-            </p>
-        </div>
-
-        <div class="importance-section">
-            <h2>Why This Matters</h2>
-            <p>
-                This project demonstrates the impact of smart investment portfolio composition 
-                on financial risk management. A well-diversified portfolio can significantly 
-                reduce overall Value at Risk (VaR), limiting potential losses under normal 
-                market conditions. Understanding and optimizing risk allocation is a key 
-                factor in making informed investment decisions.
-            </p>
-        </div>
+        <script src="script.js"></script>
     </div>
-
-    <script src="script.js"></script>
 </body>
 </html>
