@@ -28,29 +28,30 @@ def fetch_prices(symbol):
     response = requests.get(url)
     data = response.json()
 
-    if "historical" in data and len(data["historical"]) > 2:
+    print(f"📩 API Response for {symbol}: {data}")  # ✅ Log API Response for Debugging
+
+    if "historical" in data and len(data["historical"]) >= 252:
         historical_data = data["historical"][:252]
         prices = [entry["close"] for entry in historical_data]
-        print(f"✅ {symbol} - Successfully fetched {len(prices)} prices")
         return prices[::-1]  # Ensure chronological order
     else:
-        print(f"⚠️ {symbol} - No valid price data, using fallback data")
-        return np.random.normal(100, 10, 252).tolist()  # Avoid calculation errors
+        print(f"⚠️ {symbol} - No valid price data, returning empty list.")
+        return []  # Instead of using random data, return empty
 
 def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], horizons=[1, 42]):
     """
     Calculate Portfolio VaR for different confidence levels and time horizons.
-    - confidence_levels: [0.95, 0.99] → 95% and 99% confidence
-    - horizons: [1, 42] → 1-day and 2-month (42 trading days)
     """
     prices = np.array(prices)
     
     # ✅ Ensure enough historical data
     if prices.shape[1] < 2:
+        print("🚨 Error: Not enough historical data for portfolio VaR calculation.")
         return {"error": "Not enough historical data"}
 
     returns = np.diff(np.log(prices), axis=1)  # Compute log returns
     if returns.shape[1] < 2:
+        print("🚨 Error: Not enough return data.")
         return {"error": "Not enough historical returns"}
 
     # ✅ Compute Covariance Matrix & Portfolio Risk
@@ -80,7 +81,8 @@ def process_portfolio_var(request: PortfolioRequest):
     prices = [fetch_prices(symbol) for symbol in request.symbols]
     
     # ✅ Validate Price Data Before Calculation
-    if any(len(p) < 2 for p in prices):
+    if any(len(p) == 0 for p in prices):
+        print("🚨 Error: One or more securities have no valid data.")
         return {"error": "One or more securities have insufficient data"}
 
     var_results = calculate_portfolio_var(prices, request.weights)
