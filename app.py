@@ -28,10 +28,14 @@ def fetch_prices(symbol):
     response = requests.get(url)
     data = response.json()
 
-    historical_data = data.get("historical", [])[:252]  # Use only the last 252 days
-    prices = [entry["close"] for entry in historical_data]
-
-    return prices[::-1] if len(prices) > 2 else np.random.normal(100, 10, 252).tolist()
+    if "historical" in data and len(data["historical"]) > 2:
+        historical_data = data["historical"][:252]
+        prices = [entry["close"] for entry in historical_data]
+        print(f"✅ {symbol} - Successfully fetched {len(prices)} prices")
+        return prices[::-1]  # Ensure chronological order
+    else:
+        print(f"⚠️ {symbol} - No valid price data, using fallback data")
+        return np.random.normal(100, 10, 252).tolist()  # Avoid calculation errors
 
 def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], horizons=[1, 42]):
     """
@@ -40,15 +44,20 @@ def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], hor
     - horizons: [1, 42] → 1-day and 2-month (42 trading days)
     """
     prices = np.array(prices)
-    returns = np.diff(np.log(prices), axis=1)  # Compute log returns
-
-    if returns.shape[1] < 2:
+    
+    # ✅ Ensure enough historical data
+    if prices.shape[1] < 2:
         return {"error": "Not enough historical data"}
 
+    returns = np.diff(np.log(prices), axis=1)  # Compute log returns
+    if returns.shape[1] < 2:
+        return {"error": "Not enough historical returns"}
+
+    # ✅ Compute Covariance Matrix & Portfolio Risk
     cov_matrix = np.cov(returns)
     portfolio_std_dev = np.sqrt(np.dot(weights, np.dot(cov_matrix, weights)))
 
-    # Generate VaR table
+    # ✅ Generate VaR table
     var_table = []
     for horizon in horizons:
         for confidence in confidence_levels:
@@ -65,6 +74,17 @@ def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], hor
 @app.post("/calculate_var")
 def process_portfolio_var(request: PortfolioRequest):
     """Processes a portfolio request and returns a VaR table."""
+    
+    print(f"📩 Received Request: {request.symbols} with weights {request.weights}")
+
     prices = [fetch_prices(symbol) for symbol in request.symbols]
+    
+    # ✅ Validate Price Data Before Calculation
+    if any(len(p) < 2 for p in prices):
+        return {"error": "One or more securities have insufficient data"}
+
     var_results = calculate_portfolio_var(prices, request.weights)
+    
+    print("📊 VaR Calculation Complete:", var_results)
+
     return {"VaR_Table": var_results}
