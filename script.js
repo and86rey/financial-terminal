@@ -82,4 +82,82 @@ async function calculatePortfolioVar() {
     const weights = portfolio.map(stock => stock.weight / 100);
 
     try {
-        cons
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ symbols, weights })
+        });
+
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+
+        const result = await response.json();
+        
+        if (!result.VaR_Table || result.VaR_Table.length === 0) {
+            document.getElementById("varResult").innerText = "Error: No VaR data received.";
+            return;
+        }
+
+        // ✅ Extract Portfolio VaR & Individual Security VaR
+        let portfolioVar = result.VaR_Table.find(row => row.horizon === "1 day(s)" && row.confidence_level === "95%")?.VaR || 0;
+        let securityVars = result.security_VaRs || []; // API should return individual VaRs
+
+        // ✅ Maintain ticker order and append portfolio at the end
+        const labels = [...symbols, "Portfolio"];
+        const data = [...securityVars, portfolioVar];
+
+        // ✅ Generate Table First
+        let tableHtml = `<table border="1">
+            <tr><th>Security</th><th>VaR (%)</th></tr>`;
+        
+        labels.forEach((label, index) => {
+            tableHtml += `<tr><td>${label}</td><td>${data[index]}</td></tr>`;
+        });
+
+        tableHtml += `</table>`;
+        document.getElementById("varResult").innerHTML = tableHtml;
+
+        // ✅ Then Update Graph
+        updateVarChart(labels, data);
+
+    } catch (error) {
+        console.error("Error calculating Portfolio VaR:", error);
+        document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
+    }
+}
+
+// ✅ Function to Update Horizontal Bar Chart
+function updateVarChart(labels, data) {
+    const ctx = document.getElementById("varChart").getContext("2d");
+
+    // Destroy previous chart instance if it exists
+    if (window.varChartInstance) {
+        window.varChartInstance.destroy();
+    }
+
+    window.varChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels, // Securities + "Portfolio" at the end
+            datasets: [{
+                label: "VaR (%)",
+                data: data,
+                backgroundColor: labels.map((_, index) => index === labels.length - 1 ? "#ff5733" : "#3399ff"),
+                borderColor: "#ffffff",
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: "y", // ✅ Makes the bars horizontal
+            responsive: true,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Value at Risk (%)" }
+                },
+                y: {
+                    title: { display: true, text: "Securities & Portfolio" }
+                }
+            }
+        }
+    });
+}
