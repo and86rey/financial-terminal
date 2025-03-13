@@ -97,9 +97,13 @@ async function calculatePortfolioVar() {
             return;
         }
 
-        // ✅ Extract Portfolio VaR & Individual Security VaR
-        let portfolioVar = result.VaR_Table.find(row => row.horizon === "1 day(s)" && row.confidence_level === "95%")?.VaR || 0;
-        let securityVars = result.security_VaRs || []; // API should return individual VaRs
+        // ✅ Extract Portfolio VaR & Individual Security VaRs
+        let portfolioVar = result.portfolio_VaR || 0; // ✅ Ensure this field is received from API
+        let securityVars = result.security_VaRs || []; // ✅ Ensure this contains all securities
+
+        if (securityVars.length !== symbols.length) {
+            console.warn("Mismatch in expected securities VaRs. Debug API response.");
+        }
 
         // ✅ Maintain ticker order and append portfolio at the end
         const labels = [...symbols, "Portfolio"];
