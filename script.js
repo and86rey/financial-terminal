@@ -1,5 +1,5 @@
 const API_URL = "https://financial-terminal.onrender.com/calculate_var";
-const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI";
+const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"; // Replace with your actual API key
 let portfolio = [];
 
 // ✅ Load Chart.js dynamically
@@ -97,24 +97,13 @@ async function calculatePortfolioVar() {
             return;
         }
 
-        // ✅ Format VaR Table for Display
-        let varTableHtml = `<table border="1">
-            <tr><th>Horizon</th><th>Confidence Level</th><th>VaR (%)</th></tr>`;
-        
-        result.VaR_Table.forEach(row => {
-            varTableHtml += `<tr>
-                <td>${row.horizon}</td>
-                <td>${row.confidence_level}</td>
-                <td>${row.VaR}</td>
-            </tr>`;
-        });
+        // ✅ Extract Portfolio VaR & Individual Security VaR
+        let portfolioVar = result.VaR_Table.find(row => row.horizon === "1 day(s)" && row.confidence_level === "95%")?.VaR || 0;
+        let securityVars = result.security_VaRs || []; // New API field needed
 
-        varTableHtml += `</table>`;
-        document.getElementById("varResult").innerHTML = varTableHtml;
-
-        // ✅ Generate Graph Data
-        const labels = result.VaR_Table.map(row => `${row.horizon} (${row.confidence_level})`);
-        const data = result.VaR_Table.map(row => row.VaR);
+        // ✅ Keep ticker order and append portfolio at the end
+        const labels = [...symbols, "Portfolio"];
+        const data = [...securityVars, portfolioVar];
 
         updateVarChart(labels, data);
 
@@ -124,10 +113,11 @@ async function calculatePortfolioVar() {
     }
 }
 
-// ✅ Function to Update Chart
+// ✅ Function to Update Horizontal Bar Chart
 function updateVarChart(labels, data) {
     const ctx = document.getElementById("varChart").getContext("2d");
-    
+
+    // Destroy previous chart instance if it exists
     if (window.varChartInstance) {
         window.varChartInstance.destroy();
     }
@@ -135,20 +125,25 @@ function updateVarChart(labels, data) {
     window.varChartInstance = new Chart(ctx, {
         type: "bar",
         data: {
-            labels: labels,
+            labels: labels, // Ticker symbols + "Portfolio" at the end
             datasets: [{
-                label: "Portfolio VaR (%)",
+                label: "VaR (%) - Securities & Portfolio",
                 data: data,
-                backgroundColor: "rgba(75, 192, 192, 0.6)",
-                borderColor: "rgba(75, 192, 192, 1)",
+                backgroundColor: ["#3399ff", "#33cc33", "#ffcc00", "#cc33ff", "#ff6600", "#ff5733"], // Distinct colors
+                borderColor: "#ffffff",
                 borderWidth: 1
             }]
         },
         options: {
+            indexAxis: "y", // ✅ Makes the bars horizontal
             responsive: true,
             scales: {
+                x: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Value at Risk (%)" }
+                },
                 y: {
-                    beginAtZero: true
+                    title: { display: true, text: "Securities & Portfolio" }
                 }
             }
         }
