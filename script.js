@@ -1,5 +1,5 @@
 const API_URL = "https://financial-terminal.onrender.com/calculate_var";
-const FMP_API_KEY = "your_api_key";
+const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI";
 let portfolio = [];
 
 // ✅ Load Chart.js dynamically
