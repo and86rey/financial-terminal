@@ -9,21 +9,6 @@
 <body>
     <div class="container">
         <h1>Portfolio Risk Analyzer</h1>
-        
-        <!-- ✅ Added Short Description -->
-        <p class="description">
-            This tool allows you to build a simple portfolio (up to 5 securities) 
-            and analyze its risk exposure using Value at Risk (VaR). 
-            You can add stocks by entering their ticker, ISIN, or company name, 
-            allocate portfolio weights, and calculate risk metrics at different confidence levels.
-        </p>
-
-        <!-- ✅ Added Disclaimer -->
-        <p class="disclaimer">
-            ⚠️ This service is built on limited free licenses for demo purposes only. 
-            It leverages the FRM API, which has limited securities coverage. 
-            Performance and data availability may be restricted.
-        </p>
 
         <div class="input-section">
             <input type="text" id="searchInput" placeholder="Enter ISIN, Company Name, or Ticker">
@@ -40,6 +25,36 @@
             </table>
             <button id="calculateVar">Calculate Portfolio VaR</button>
             <div id="varResult"></div>
+        </div>
+        <!-- Add this inside the <body> tag, below the VaR results -->
+        <div class="chart-container">
+            <h2>Portfolio Risk Visualization</h2>
+            <canvas id="varChart"></canvas>
+        </div>
+        <!-- ✅ Moved Disclaimer & Description to Bottom -->
+        <div class="disclaimer-section">
+            <h2>Disclaimer</h2>
+            <p>
+                ⚠️ This service is built on limited free licenses for demo purposes only. 
+                It leverages the **Financial Modeling Prep (FMP) API**, which has limited securities coverage. 
+                Performance and data availability may be restricted.
+            </p>
+            <p>
+                This project is implemented using **FastAPI (Python) for backend processing**, 
+                **JavaScript for frontend logic**, and **FMP API for financial data retrieval**. 
+                The risk calculations, including **Value at Risk (VaR)**, are performed using **NumPy and SciPy**.  
+                The interface is built with **HTML, CSS, and JavaScript** for real-time interactivity.
+            </p>
+        </div>
+
+        <div class="importance-section">
+            <h2>Why This Matters</h2>
+            <p>
+                This simple project highlights the **importance of smart investment portfolio composition** 
+                and how dramatically it can impact risk management. 
+                By diversifying assets strategically, an investor can **significantly lower the overall portfolio VaR**, 
+                reducing potential losses under normal market conditions.
+            </p>
         </div>
     </div>
     <script src="script.js"></script>
