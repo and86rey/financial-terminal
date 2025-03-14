@@ -18,8 +18,7 @@
             <li><b>Monte Carlo VaR</b> - Simulates thousands of future price paths to estimate risk.</li>
             <li><b>Cornish-Fisher VaR</b> - Adjusts normal VaR to account for skewness and fat tails.</li>
         </ul>
-        <p>The tool also provides an estimate of the <b>expected annual return</b> based on historical performance.</p>
-        <p>By using multiple VaR models, users can gain a better understanding of risk exposure and the importance of portfolio diversification.</p>
+        <p>The tool also provides an estimate of the <b>expected annual return</b> and <b>Portfolio-Level VaR</b>, which accounts for diversification effects.</p>
     </div>
 
     <div class="search-section">
@@ -55,8 +54,16 @@
                 <th>Monte Carlo VaR 1D 99%</th>
                 <th>Cornish-Fisher VaR 1D 95%</th>
                 <th>Cornish-Fisher VaR 1D 99%</th>
-                <th>Expected Annual Return</th>
             </tr>
+            <tbody id="varResultsTable"></tbody>
+            <tfoot>
+                <tr>
+                    <td><b>Portfolio</b></td>
+                    <td id="portfolioNormalVar95">N/A</td>
+                    <td id="portfolioNormalVar99">N/A</td>
+                    <td colspan="6"></td> <!-- Empty columns for alignment -->
+                </tr>
+            </tfoot>
         </table>
     </div>
 
