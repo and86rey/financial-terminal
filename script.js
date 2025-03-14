@@ -67,7 +67,6 @@ function updatePortfolioTable() {
     });
 }
 
-// ✅ Added missing function to calculate VaR
 async function calculatePortfolioVar() {
     if (portfolio.length === 0) {
         document.getElementById("varResult").innerText = "No securities in portfolio.";
@@ -114,6 +113,7 @@ function displayVarResults(varData) {
     document.getElementById("varResult").innerHTML = tableHtml;
 }
 
+// ✅ Fixed `fetchPortfolioPrices()` to prevent empty requests and handle errors
 async function fetchPortfolioPrices() {
     if (portfolio.length === 0) {
         document.getElementById("priceData").innerText = "No securities in portfolio.";
@@ -121,17 +121,25 @@ async function fetchPortfolioPrices() {
     }
 
     const symbols = portfolio.map(stock => stock.symbol);
-    
+    if (symbols.length === 0) {
+        document.getElementById("priceData").innerText = "No symbols selected.";
+        return;
+    }
+
     try {
         const response = await fetch(PRICE_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols })
+            body: JSON.stringify({ symbols }) // Ensures the request is correctly formatted
         });
 
         if (!response.ok) throw new Error("API request failed");
 
         const result = await response.json();
+        if (!result.prices || Object.keys(result.prices).length === 0) {
+            throw new Error("No historical data available.");
+        }
+
         let tableHtml = `<table border="1"><tr><th>Date</th>`;
         symbols.forEach(symbol => tableHtml += `<th>${symbol}</th>`);
         tableHtml += `</tr>`;
@@ -153,7 +161,8 @@ async function fetchPortfolioPrices() {
         });
 
         document.getElementById("priceData").innerHTML = tableHtml;
-    } catch {
+    } catch (error) {
         document.getElementById("priceData").innerText = "Error retrieving price data.";
+        console.error("Fetch Prices Error:", error);
     }
 }
