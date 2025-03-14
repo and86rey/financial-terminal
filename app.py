@@ -33,6 +33,7 @@ def fetch_prices(symbol):
     if "historical" in data and len(data["historical"]) >= 252:
         historical_data = data["historical"][:252]
         prices = [entry["close"] for entry in historical_data]
+        print(f"✅ Fetched {len(prices)} prices for {symbol}: {prices[:5]}...")  # ✅ Print first 5 prices
         return prices[::-1]  # Ensure chronological order
     else:
         print(f"⚠️ {symbol} - No valid price data, returning empty list.")
@@ -49,14 +50,22 @@ def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], hor
         return {"error": "Not enough valid securities"}
 
     prices = np.array(valid_prices)
-    returns = np.diff(np.log(prices), axis=1)
+    
+    print(f"✅ Price Matrix Shape: {prices.shape}")  # ✅ Check matrix shape
 
+    returns = np.diff(np.log(prices), axis=1)
+    
     if returns.shape[1] < 2:
         print("🚨 Error: Not enough return data for calculation")
         return {"error": "Not enough historical return data"}
 
     cov_matrix = np.cov(returns)
+    
+    print(f"✅ Covariance Matrix: {cov_matrix}")  # ✅ Debug covariance matrix
+
     portfolio_std_dev = np.sqrt(np.dot(weights, np.dot(cov_matrix, weights)))
+    
+    print(f"✅ Portfolio Standard Deviation: {portfolio_std_dev}")  # ✅ Check std deviation
 
     var_table = []
     for horizon in horizons:
@@ -69,6 +78,7 @@ def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], hor
                 "VaR": round(var_value, 2)
             })
 
+    print(f"✅ VaR Calculation Complete: {var_table}")  # ✅ Print calculated VaRs
     return var_table
 
 @app.post("/calculate_var")
