@@ -23,7 +23,7 @@ class PortfolioRequest(BaseModel):
     weights: list
 
 def fetch_prices(symbol):
-    """Fetch the latest 252 days of historical prices from FMP API."""
+    """Fetch historical prices from FMP API."""
     url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}?serietype=line&apikey={FMP_API_KEY}"
     response = requests.get(url)
     data = response.json()
@@ -36,20 +36,23 @@ def fetch_prices(symbol):
         return prices[::-1]  # Ensure chronological order
     else:
         print(f"⚠️ {symbol} - No valid price data, returning empty list.")
-        return None  # Return None instead of empty list
+        return None  
 
-def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], horizons=[1, 42]):
+def calculate_portfolio_var(prices, weights, confidence_levels=[0.95, 0.99], horizons=[1, 5]):
     """
     Calculate Portfolio VaR for different confidence levels and time horizons.
+    - horizons: [1, 5] → 1-day and 1-week (5 trading days)
     """
-    prices = [p for p in prices if p is not None]  # Remove missing data
-    if len(prices) < 2:
-        return {"error": "Not enough valid securities to compute VaR"}
+    valid_prices = [p for p in prices if p is not None]  
+    if len(valid_prices) < 2:
+        print("🚨 Error: Not enough valid securities to compute VaR")
+        return {"error": "Not enough valid securities"}
 
-    prices = np.array(prices)
-    returns = np.diff(np.log(prices), axis=1)  # Compute log returns
+    prices = np.array(valid_prices)
+    returns = np.diff(np.log(prices), axis=1)
 
     if returns.shape[1] < 2:
+        print("🚨 Error: Not enough return data for calculation")
         return {"error": "Not enough historical return data"}
 
     cov_matrix = np.cov(returns)
@@ -77,7 +80,8 @@ def process_portfolio_var(request: PortfolioRequest):
     prices = [fetch_prices(symbol) for symbol in request.symbols]
 
     if all(p is None for p in prices):
-        return {"error": "No valid price data for any securities"}
+        print("🚨 Error: No valid price data for any securities.")
+        return {"error": "No valid price data"}
 
     var_results = calculate_portfolio_var(prices, request.weights)
     
