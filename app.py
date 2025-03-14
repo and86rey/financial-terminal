@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import requests
 import numpy as np
 from scipy.stats import norm, kurtosis, skew
+from pydantic import BaseModel
+from typing import List
 
 app = FastAPI()
 
@@ -16,9 +18,9 @@ app.add_middleware(
 
 FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"
 
-class PortfolioRequest:
-    symbols: list
-    weights: list = []
+class PortfolioRequest(BaseModel):
+    symbols: List[str]
+    weights: List[float] = []
 
 def fetch_prices(symbol):
     """Fetch the most recent 252 historical prices from FMP API."""
