@@ -67,6 +67,53 @@ function updatePortfolioTable() {
     });
 }
 
+// ✅ Added missing function to calculate VaR
+async function calculatePortfolioVar() {
+    if (portfolio.length === 0) {
+        document.getElementById("varResult").innerText = "No securities in portfolio.";
+        return;
+    }
+
+    const symbols = portfolio.map(stock => stock.symbol);
+    const weights = portfolio.map(stock => stock.weight);
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ symbols, weights })
+        });
+
+        if (!response.ok) throw new Error("API request failed");
+
+        const result = await response.json();
+        displayVarResults(result);
+    } catch {
+        document.getElementById("varResult").innerText = "Error calculating VaR.";
+    }
+}
+
+function displayVarResults(varData) {
+    let tableHtml = "<h2>Portfolio VaR Results</h2>";
+    tableHtml += `<table border="1">
+                    <tr>
+                        <th>Security</th>
+                        <th>VaR 1D 95%</th>
+                        <th>VaR 1D 99%</th>
+                    </tr>`;
+
+    for (const [symbol, varValues] of Object.entries(varData)) {
+        tableHtml += `<tr>
+                        <td>${symbol}</td>
+                        <td>${varValues.VaR_1d_95 || "N/A"}</td>
+                        <td>${varValues.VaR_1d_99 || "N/A"}</td>
+                    </tr>`;
+    }
+
+    tableHtml += "</table>";
+    document.getElementById("varResult").innerHTML = tableHtml;
+}
+
 async function fetchPortfolioPrices() {
     if (portfolio.length === 0) {
         document.getElementById("priceData").innerText = "No securities in portfolio.";
