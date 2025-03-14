@@ -49,7 +49,7 @@ function addToPortfolio(symbol, name) {
     if (isNaN(weight) || weight <= 0 || weight > 100) return;
 
     portfolio.push({ symbol, name, weight });
-    updatePortfolioTable(); // ✅ This function now exists
+    updatePortfolioTable();
 }
 
 function removeFromPortfolio(index) {
@@ -98,16 +98,17 @@ async function calculatePortfolioVar() {
         }
 
         let tableHtml = `<table border="1">
-            <tr><th>Security</th><th>VaR 1-Day (95%)</th><th>VaR 1-Day (99%)</th><th>VaR 1-Month (95%)</th><th>VaR 1-Month (99%)</th></tr>`;
+            <tr><th>Security</th><th>VaR 1-Day (95%)</th><th>VaR 1-Day (99%)</th><th>VaR 1-Week (95%)</th><th>VaR 1-Week (99%)</th></tr>`;
 
         result.VaR_Table.forEach(row => {
-            tableHtml += `<tr><td>${row.security || "Portfolio"}</td><td>${row["VaR 1-Day (95%)"] || "-"}</td><td>${row["VaR 1-Day (99%)"] || "-"}</td><td>${row["VaR 1-Month (95%)"] || "-"}</td><td>${row["VaR 1-Month (99%)"] || "-"}</td></tr>`;
+            tableHtml += `<tr><td>${row.security || "Portfolio"}</td><td>${row["VaR 1-Day (95%)"] || "-"}</td><td>${row["VaR 1-Day (99%)"] || "-"}</td><td>${row["VaR 1-Week (95%)"] || "-"}</td><td>${row["VaR 1-Week (99%)"] || "-"}</td></tr>`;
         });
 
         tableHtml += `</table>`;
         document.getElementById("varResult").innerHTML = tableHtml;
 
     } catch (error) {
+        console.error("🚨 Error fetching VaR:", error);
         document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
     }
 }
