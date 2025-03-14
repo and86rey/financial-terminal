@@ -10,12 +10,29 @@
     <div class="container">
         <h1>Portfolio Risk Analyzer</h1>
 
+        <!-- Project Description -->
+        <section class="description">
+            <h2>About This Project</h2>
+            <p>
+                This web application allows users to compose a simple investment portfolio with up to five securities 
+                and analyze its risk using Value at Risk (VaR) metrics. Users can search for securities by ISIN, 
+                company name, or stock ticker, assign weight percentages, and calculate the total portfolio VaR.
+            </p>
+            <p>
+                This project highlights the importance of smart portfolio composition in mitigating financial risk.
+                By comparing single-security VaR values against a diversified portfolio VaR, users can better understand 
+                how asset selection impacts risk exposure.
+            </p>
+        </section>
+
+        <!-- Input for adding securities -->
         <div class="input-section">
             <input type="text" id="searchInput" placeholder="Enter ISIN, Company Name, or Ticker">
             <button id="searchButton">Search</button>
         </div>
         <div id="searchResults" class="results-section"></div>
 
+        <!-- Portfolio Table -->
         <div id="portfolio" class="portfolio-section">
             <h2>Portfolio (Max 5 Securities)</h2>
             <table>
@@ -27,14 +44,29 @@
             <button id="calculateVar">Calculate Portfolio VaR</button>
         </div>
 
-        <!-- ✅ VaR Calculation Table -->
+        <!-- VaR Calculation Table -->
         <div id="varResult" class="var-table"></div>
 
-        <!-- ✅ VaR Visualization Graph -->
+        <!-- VaR Visualization Graph -->
         <div class="chart-container">
             <h2>Portfolio Risk Visualization</h2>
             <canvas id="varChart"></canvas>
         </div>
+
+        <!-- Disclaimer Section -->
+        <section class="disclaimer">
+            <h2>Disclaimer</h2>
+            <p>
+                This tool is provided for educational and demonstration purposes only. 
+                The VaR calculations are based on historical price data and do not constitute financial advice.
+                Data is retrieved using the FMP API, which has limited securities coverage.
+            </p>
+            <p>
+                This project is built using JavaScript for the frontend, Python with FastAPI for the backend, and 
+                hosted on GitHub Pages with the backend running on Render.
+            </p>
+            <p>Note: The free version of this tool limits the portfolio to five securities.</p>
+        </section>
 
         <script src="script.js"></script>
     </div>
