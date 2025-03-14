@@ -97,72 +97,32 @@ function displayVarResults(varData) {
     tableHtml += `<table border="1">
                     <tr>
                         <th>Security</th>
-                        <th>VaR 1D 95%</th>
-                        <th>VaR 1D 99%</th>
+                        <th>Normal VaR 1D 95%</th>
+                        <th>Normal VaR 1D 99%</th>
+                        <th>Hist VaR 1D 95%</th>
+                        <th>Hist VaR 1D 99%</th>
+                        <th>Monte Carlo VaR 1D 95%</th>
+                        <th>Monte Carlo VaR 1D 99%</th>
+                        <th>Cornish-Fisher VaR 1D 95%</th>
+                        <th>Cornish-Fisher VaR 1D 99%</th>
+                        <th>Expected Annual Return</th>
                     </tr>`;
 
     for (const [symbol, varValues] of Object.entries(varData)) {
         tableHtml += `<tr>
                         <td>${symbol}</td>
-                        <td>${varValues.VaR_1d_95 || "N/A"}</td>
-                        <td>${varValues.VaR_1d_99 || "N/A"}</td>
+                        <td>${varValues.Normal_VaR_1D_95 || "N/A"}</td>
+                        <td>${varValues.Normal_VaR_1D_99 || "N/A"}</td>
+                        <td>${varValues.Hist_VaR_1D_95 || "N/A"}</td>
+                        <td>${varValues.Hist_VaR_1D_99 || "N/A"}</td>
+                        <td>${varValues.MonteCarlo_VaR_1D_95 || "N/A"}</td>
+                        <td>${varValues.MonteCarlo_VaR_1D_99 || "N/A"}</td>
+                        <td>${varValues.CornishFisher_VaR_1D_95 || "N/A"}</td>
+                        <td>${varValues.CornishFisher_VaR_1D_99 || "N/A"}</td>
+                        <td>${varValues.Expected_Annual_Return || "N/A"}</td>
                     </tr>`;
     }
 
     tableHtml += "</table>";
     document.getElementById("varResult").innerHTML = tableHtml;
-}
-
-// ✅ Fixed `fetchPortfolioPrices()` to prevent empty requests and handle errors
-async function fetchPortfolioPrices() {
-    if (portfolio.length === 0) {
-        document.getElementById("priceData").innerText = "No securities in portfolio.";
-        return;
-    }
-
-    const symbols = portfolio.map(stock => stock.symbol);
-    if (symbols.length === 0) {
-        document.getElementById("priceData").innerText = "No symbols selected.";
-        return;
-    }
-
-    try {
-        const response = await fetch(PRICE_API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols }) // Ensures the request is correctly formatted
-        });
-
-        if (!response.ok) throw new Error("API request failed");
-
-        const result = await response.json();
-        if (!result.prices || Object.keys(result.prices).length === 0) {
-            throw new Error("No historical data available.");
-        }
-
-        let tableHtml = `<table border="1"><tr><th>Date</th>`;
-        symbols.forEach(symbol => tableHtml += `<th>${symbol}</th>`);
-        tableHtml += `</tr>`;
-
-        const allDates = new Set();
-        symbols.forEach(symbol => {
-            if (result.prices[symbol]) {
-                Object.keys(result.prices[symbol]).forEach(date => allDates.add(date));
-            }
-        });
-
-        [...allDates].sort().reverse().forEach(date => {
-            tableHtml += `<tr><td>${date}</td>`;
-            symbols.forEach(symbol => {
-                const price = result.prices[symbol]?.[date] || "N/A";
-                tableHtml += `<td>${price}</td>`;
-            });
-            tableHtml += `</tr>`;
-        });
-
-        document.getElementById("priceData").innerHTML = tableHtml;
-    } catch (error) {
-        document.getElementById("priceData").innerText = "Error retrieving price data.";
-        console.error("Fetch Prices Error:", error);
-    }
 }
