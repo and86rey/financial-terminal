@@ -49,7 +49,27 @@ function addToPortfolio(symbol, name) {
     if (isNaN(weight) || weight <= 0 || weight > 100) return;
 
     portfolio.push({ symbol, name, weight });
+    updatePortfolioTable(); // ✅ This function now exists
+}
+
+function removeFromPortfolio(index) {
+    portfolio.splice(index, 1);
     updatePortfolioTable();
+    document.getElementById("varResult").innerText = "Portfolio updated. Recalculate VaR.";
+}
+
+function updatePortfolioTable() {
+    const table = document.getElementById("portfolioTable");
+    table.innerHTML = "";
+
+    portfolio.forEach((stock, index) => {
+        let row = table.insertRow();
+        row.innerHTML = `
+            <td>${stock.name} (${stock.symbol})</td>
+            <td>${stock.weight}%</td>
+            <td><button onclick="removeFromPortfolio(${index})">Remove</button></td>
+        `;
+    });
 }
 
 async function calculatePortfolioVar() {
