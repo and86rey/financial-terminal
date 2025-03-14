@@ -10,6 +10,9 @@
     <div class="container">
         <h1>Portfolio Risk Analyzer</h1>
 
+        <p>This tool allows users to build a simple investment portfolio (up to 5 securities) and calculate Value at Risk (VaR) metrics.  
+           VaR calculations help in understanding potential losses based on historical data.</p>
+
         <div class="input-section">
             <input type="text" id="searchInput" placeholder="Enter ISIN, Company Name, or Ticker">
             <button id="searchButton">Search</button>
@@ -38,6 +41,12 @@
             <h2>Historical Price Data</h2>
             <button onclick="fetchPortfolioPrices()">Show Historical Prices</button>
             <div id="priceData">Click "Show Historical Prices" to load data.</div>
+        </div>
+
+        <div class="disclaimer">
+            <h3>Disclaimer</h3>
+            <p>This tool is for educational purposes only and does not provide financial advice.  
+               The data is retrieved using the FMP API, which has a limited securities coverage.</p>
         </div>
 
         <script src="script.js"></script>
