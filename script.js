@@ -1,45 +1,112 @@
-async function calculatePortfolioVar() {
+const API_URL = "https://financial-terminal.onrender.com/calculate_var";
+const PRICE_API_URL = "https://financial-terminal.onrender.com/fetch_prices";
+const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"; 
+let portfolio = [];
+
+document.getElementById("searchButton").addEventListener("click", fetchSecurity);
+document.getElementById("calculateVar").addEventListener("click", calculatePortfolioVar);
+
+async function fetchSecurity() {
+    const query = document.getElementById("searchInput").value.trim();
+    if (!query) return;
+
+    const url = `https://financialmodelingprep.com/api/v3/profile/${query}?apikey=${FMP_API_KEY}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("API request failed");
+        const data = await response.json();
+
+        if (data.length) {
+            displaySearchResult(data[0]);
+        } else {
+            document.getElementById("searchResults").innerHTML = "<p>No results found.</p>";
+        }
+    } catch {
+        document.getElementById("searchResults").innerHTML = "<p>Error fetching security.</p>";
+    }
+}
+
+function displaySearchResult(stock) {
+    document.getElementById("searchResults").innerHTML = `
+        <p>${stock.companyName} (${stock.symbol}) - Price: $${stock.price}</p>
+        <input type="number" id="weightInput" placeholder="Enter weight %" min="1" max="100">
+        <button onclick="addToPortfolio('${stock.symbol}', '${stock.companyName}')">Add to Portfolio</button>
+    `;
+}
+
+function addToPortfolio(symbol, name) {
+    if (portfolio.length >= 5) {
+        alert("Maximum 5 securities allowed.");
+        return;
+    }
+
+    const weight = parseFloat(document.getElementById("weightInput").value);
+    if (isNaN(weight) || weight <= 0 || weight > 100) return;
+
+    portfolio.push({ symbol, name, weight });
+    updatePortfolioTable();
+}
+
+function removeFromPortfolio(index) {
+    portfolio.splice(index, 1);
+    updatePortfolioTable();
+    document.getElementById("varResult").innerText = "Portfolio updated. Recalculate VaR.";
+}
+
+function updatePortfolioTable() {
+    const table = document.getElementById("portfolioTable");
+    table.innerHTML = "";
+
+    portfolio.forEach((stock, index) => {
+        let row = table.insertRow();
+        row.innerHTML = `
+            <td>${stock.name} (${stock.symbol})</td>
+            <td>${stock.weight}%</td>
+            <td><button onclick="removeFromPortfolio(${index})">Remove</button></td>
+        `;
+    });
+}
+
+async function fetchPortfolioPrices() {
     if (portfolio.length === 0) {
-        document.getElementById("varResult").innerText = "Portfolio is empty. Add stocks first.";
+        document.getElementById("priceData").innerText = "No securities in portfolio.";
         return;
     }
 
     const symbols = portfolio.map(stock => stock.symbol);
-    const weights = portfolio.map(stock => stock.weight / 100);
-
-    console.log("🔍 Sending API Request with:", JSON.stringify({ symbols, weights }, null, 2)); // ✅ Debug Request
-
+    
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(PRICE_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols, weights })
+            body: JSON.stringify({ symbols })
         });
 
-        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        if (!response.ok) throw new Error("API request failed");
 
         const result = await response.json();
-        
-        console.log("📩 Full API Response (Debug):", JSON.stringify(result, null, 2)); // ✅ Print full readable response
+        let tableHtml = `<table border="1"><tr><th>Date</th>`;
+        symbols.forEach(symbol => tableHtml += `<th>${symbol}</th>`);
+        tableHtml += `</tr>`;
 
-        if (!result.VaR_Table) {
-            console.error("🚨 Error: VaR data missing in API response.");
-            document.getElementById("varResult").innerText = "Error: No valid VaR data available.";
-            return;
-        }
-
-        let tableHtml = `<table border="1">
-            <tr><th>Security</th><th>VaR 1-Day (95%)</th><th>VaR 1-Day (99%)</th><th>VaR 1-Week (95%)</th><th>VaR 1-Week (99%)</th></tr>`;
-
-        result.VaR_Table.forEach(row => {
-            tableHtml += `<tr><td>${row.security || "Portfolio"}</td><td>${row["VaR 1-Day (95%)"] || "-"}</td><td>${row["VaR 1-Day (99%)"] || "-"}</td><td>${row["VaR 1-Week (95%)"] || "-"}</td><td>${row["VaR 1-Week (99%)"] || "-"}</td></tr>`;
+        const allDates = new Set();
+        symbols.forEach(symbol => {
+            if (result.prices[symbol]) {
+                Object.keys(result.prices[symbol]).forEach(date => allDates.add(date));
+            }
         });
 
-        tableHtml += `</table>`;
-        document.getElementById("varResult").innerHTML = tableHtml;
+        [...allDates].sort().reverse().forEach(date => {
+            tableHtml += `<tr><td>${date}</td>`;
+            symbols.forEach(symbol => {
+                const price = result.prices[symbol]?.[date] || "N/A";
+                tableHtml += `<td>${price}</td>`;
+            });
+            tableHtml += `</tr>`;
+        });
 
-    } catch (error) {
-        console.error("🚨 Error fetching VaR:", error);
-        document.getElementById("varResult").innerText = "Error calculating Portfolio VaR.";
+        document.getElementById("priceData").innerHTML = tableHtml;
+    } catch {
+        document.getElementById("priceData").innerText = "Error retrieving price data.";
     }
 }
