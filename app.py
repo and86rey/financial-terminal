@@ -20,7 +20,7 @@ FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"
 
 class PortfolioRequest(BaseModel):
     symbols: List[str]
-    weights: List[float] = []
+    weights: List[float]
 
 def fetch_prices(symbol):
     """Fetch the most recent 252 historical prices from FMP API."""
@@ -60,7 +60,7 @@ def cornish_fisher_var(mean, std, returns, confidence_level):
 
 @app.post("/calculate_var")
 def calculate_var(request: PortfolioRequest):
-    """Calculates all four types of VaR."""
+    """Calculates VaR at the portfolio level considering asset weights and correlation."""
     if not request.symbols or len(request.symbols) == 0:
         raise HTTPException(status_code=422, detail="No symbols provided for VaR calculation")
 
@@ -70,15 +70,11 @@ def calculate_var(request: PortfolioRequest):
         raise HTTPException(status_code=422, detail="One or more securities lack sufficient data")
 
     log_returns = {}
-    expected_returns = {}
-
     for symbol, prices in prices_dict.items():
         price_series = np.array(list(prices.values()))
         if len(price_series) < 2:
             continue  
-
         log_returns[symbol] = np.diff(np.log(price_series))
-        expected_returns[symbol] = np.mean(log_returns[symbol]) * 252  
 
     var_results = {}
 
@@ -88,8 +84,7 @@ def calculate_var(request: PortfolioRequest):
                 "Normal_VaR_1D_95": "N/A", "Normal_VaR_1D_99": "N/A",
                 "Hist_VaR_1D_95": "N/A", "Hist_VaR_1D_99": "N/A",
                 "MonteCarlo_VaR_1D_95": "N/A", "MonteCarlo_VaR_1D_99": "N/A",
-                "CornishFisher_VaR_1D_95": "N/A", "CornishFisher_VaR_1D_99": "N/A",
-                "Expected_Annual_Return": "N/A"
+                "CornishFisher_VaR_1D_95": "N/A", "CornishFisher_VaR_1D_99": "N/A"
             }
             continue
 
@@ -115,8 +110,21 @@ def calculate_var(request: PortfolioRequest):
             "MonteCarlo_VaR_1D_95": round(monte_carlo_var_1d_95, 6),
             "MonteCarlo_VaR_1D_99": round(monte_carlo_var_1d_99, 6),
             "CornishFisher_VaR_1D_95": round(cornish_fisher_var_1d_95, 6),
-            "CornishFisher_VaR_1D_99": round(cornish_fisher_var_1d_99, 6),
-            "Expected_Annual_Return": round(expected_returns[symbol], 6)
+            "CornishFisher_VaR_1D_99": round(cornish_fisher_var_1d_99, 6)
         }
+
+    # Portfolio-Level VaR Calculation
+    returns_matrix = np.column_stack(list(log_returns.values()))
+    weights = np.array(request.weights) / 100  
+    cov_matrix = np.cov(returns_matrix, rowvar=False)  
+    portfolio_volatility = np.sqrt(weights.T @ cov_matrix @ weights)  
+
+    portfolio_var_1d_95 = norm.ppf(0.05, 0, portfolio_volatility)
+    portfolio_var_1d_99 = norm.ppf(0.01, 0, portfolio_volatility)
+
+    var_results["Portfolio"] = {
+        "Normal_VaR_1D_95": round(portfolio_var_1d_95, 6),
+        "Normal_VaR_1D_99": round(portfolio_var_1d_99, 6),
+    }
 
     return var_results
