@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import numpy as np
-from scipy.stats import norm, kurtosis, skew
+from scipy.stats import norm
 from pydantic import BaseModel
 from typing import List
 
@@ -42,14 +42,18 @@ def fetch_prices(symbol):
 
 def calculate_beta(portfolio_returns, market_returns):
     """Compute Beta as Cov(Rp, Rm) / Var(Rm)"""
-    if len(portfolio_returns) != len(market_returns):
-        min_length = min(len(portfolio_returns), len(market_returns))
-        portfolio_returns = portfolio_returns[:min_length]
-        market_returns = market_returns[:min_length]
+    try:
+        if len(portfolio_returns) != len(market_returns):
+            min_length = min(len(portfolio_returns), len(market_returns))
+            portfolio_returns = portfolio_returns[:min_length]
+            market_returns = market_returns[:min_length]
 
-    cov_matrix = np.cov(portfolio_returns, market_returns)
-    beta = cov_matrix[0, 1] / cov_matrix[1, 1]  # Cov(Rp, Rm) / Var(Rm)
-    return round(beta, 4)
+        cov_matrix = np.cov(portfolio_returns, market_returns)
+        beta = cov_matrix[0, 1] / cov_matrix[1, 1]  # Cov(Rp, Rm) / Var(Rm)
+        return round(beta, 4)
+    except Exception as e:
+        print(f"Beta calculation error: {e}")
+        return "N/A"
 
 @app.post("/calculate_var")
 def calculate_var(request: PortfolioRequest):
@@ -92,11 +96,11 @@ def calculate_var(request: PortfolioRequest):
     for symbol, returns in log_returns.items():
         mean, std = np.mean(returns), np.std(returns)
         var_results[symbol] = {
-            "Normal_VaR_1D_95": round(norm.ppf(0.05, mean, std), 6),
-            "Normal_VaR_1D_99": round(norm.ppf(0.01, mean, std), 6),
-            "Hist_VaR_1D_95": round(np.percentile(returns, 5), 6),
-            "Hist_VaR_1D_99": round(np.percentile(returns, 1), 6),
-            "Expected_Annual_Return": round(expected_returns[symbol], 6)
+            "Normal_VaR_1D_95": round(norm.ppf(0.05, mean, std), 6) if std > 0 else "N/A",
+            "Normal_VaR_1D_99": round(norm.ppf(0.01, mean, std), 6) if std > 0 else "N/A",
+            "Hist_VaR_1D_95": round(np.percentile(returns, 5), 6) if len(returns) > 0 else "N/A",
+            "Hist_VaR_1D_99": round(np.percentile(returns, 1), 6) if len(returns) > 0 else "N/A",
+            "Expected_Annual_Return": round(expected_returns[symbol], 6) if symbol in expected_returns else "N/A"
         }
 
     return var_results
