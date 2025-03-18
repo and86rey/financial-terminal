@@ -53,7 +53,7 @@ def calculate_beta(portfolio_returns, market_returns):
 
 @app.post("/calculate_var")
 def calculate_var(request: PortfolioRequest):
-    """Calculate Portfolio VaR and Beta."""
+    """Calculate Portfolio VaR, Expected Return, and Beta."""
     if not request.symbols or len(request.symbols) == 0:
         raise HTTPException(status_code=422, detail="No symbols provided for calculation")
 
@@ -65,11 +65,14 @@ def calculate_var(request: PortfolioRequest):
         raise HTTPException(status_code=422, detail="One or more securities lack sufficient data")
 
     log_returns = {}
+    expected_returns = {}
+
     for symbol, prices in prices_dict.items():
         price_series = np.array(list(prices.values()))
         if len(price_series) < 2:
             continue  
         log_returns[symbol] = np.diff(np.log(price_series))
+        expected_returns[symbol] = np.mean(log_returns[symbol]) * 252  
 
     # Compute portfolio returns
     weights = np.array(request.weights) / 100  
@@ -83,4 +86,17 @@ def calculate_var(request: PortfolioRequest):
     # Compute portfolio beta
     portfolio_beta = calculate_beta(portfolio_returns, market_returns)
 
-    return {"Portfolio_Beta": portfolio_beta}
+    var_results = {"Portfolio_Beta": portfolio_beta}
+
+    # Compute individual security VaRs
+    for symbol, returns in log_returns.items():
+        mean, std = np.mean(returns), np.std(returns)
+        var_results[symbol] = {
+            "Normal_VaR_1D_95": round(norm.ppf(0.05, mean, std), 6),
+            "Normal_VaR_1D_99": round(norm.ppf(0.01, mean, std), 6),
+            "Hist_VaR_1D_95": round(np.percentile(returns, 5), 6),
+            "Hist_VaR_1D_99": round(np.percentile(returns, 1), 6),
+            "Expected_Annual_Return": round(expected_returns[symbol], 6)
+        }
+
+    return var_results
