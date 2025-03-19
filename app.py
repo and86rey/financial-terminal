@@ -4,12 +4,15 @@ import requests
 import numpy as np
 from scipy.stats import norm
 from pydantic import BaseModel
+from typing import List, Dict
 
 app = FastAPI()
 
+GITHUB_PAGES_URL = "https://and86rey.github.io"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://and86rey.github.io"],  
+    allow_origins=[GITHUB_PAGES_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,94 +21,95 @@ app.add_middleware(
 FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"
 
 class PortfolioRequest(BaseModel):
-    symbols: list
-    weights: list = []
+    symbols: List[str]
+    weights: List[float]
 
 def fetch_prices(symbol):
-    """Fetch the most recent 252 historical prices from FMP API."""
     url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}?apikey={FMP_API_KEY}"
     response = requests.get(url)
     
     if response.status_code != 200:
-        print(f"Error fetching data for {symbol}: {response.status_code}")
-        return {}
-
+        return []
+    
     data = response.json()
-    if "historical" in data and len(data["historical"]) > 0:
-        # Sort the data by date (newest first)
-        historical_data = sorted(data["historical"], key=lambda x: x["date"], reverse=True)
+    if "historical" in data:
+        prices = sorted(data["historical"], key=lambda x: x["date"], reverse=True)
+        return [entry["close"] for entry in prices[:252]]
+    
+    return []
 
-        # Take the most recent 252 days
-        prices = {entry["date"]: entry["close"] for entry in historical_data[:252]}
-        
-        if len(prices) == 0:
-            print(f"Warning: No sufficient historical data for {symbol}")
-        return prices
+def scale_var(var_1d, days=42):
+    return round(var_1d * np.sqrt(days), 6) if isinstance(var_1d, (int, float)) else "N/A"
 
-    print(f"Warning: No historical data found for {symbol}")
-    return {}
+def calculate_var(returns, confidence_level):
+    mean, std = np.mean(returns), np.std(returns)
+    var_1d = norm.ppf(1 - confidence_level, mean, std)
+    return round(var_1d, 6) if std > 0 else "N/A"
 
-@app.post("/fetch_prices")
-def get_prices(request: PortfolioRequest):
-    """Returns historical price data for each requested security."""
-    if not request.symbols or len(request.symbols) == 0:
-        raise HTTPException(status_code=422, detail="No symbols provided")
+def historical_var(returns, confidence_level):
+    if len(returns) > 0:
+        var_1d = np.percentile(returns, 100 * (1 - confidence_level))
+        return round(var_1d, 6)
+    return "N/A"
 
-    prices_data = {}
-    for symbol in request.symbols:
-        prices = fetch_prices(symbol)
-        if prices:
-            prices_data[symbol] = prices
-        else:
-            prices_data[symbol] = {}  # Ensure empty data is handled properly
+def monte_carlo_var(returns, confidence_level):
+    try:
+        simulated_returns = np.random.choice(returns, 10000, replace=True)
+        var_1d = np.percentile(simulated_returns, 100 * (1 - confidence_level))
+        return round(var_1d, 6)
+    except:
+        return "N/A"
 
-    return {"prices": prices_data}
+def cornish_fisher_var(returns, confidence_level):
+    try:
+        mean, std = np.mean(returns), np.std(returns)
+        z = norm.ppf(1 - confidence_level)
+        skew = np.mean((returns - mean) ** 3) / std**3
+        kurt = np.mean((returns - mean) ** 4) / std**4
+        adj_z = z + (z**2 - 1) * skew / 6 + (z**3 - 3 * z) * (kurt - 3) / 24
+        var_1d = mean + adj_z * std
+        return round(var_1d, 6)
+    except:
+        return "N/A"
 
 @app.post("/calculate_var")
-def calculate_var(request: PortfolioRequest):
-    """Calculates Value at Risk (VaR) at portfolio level and for individual securities."""
-    if not request.symbols or len(request.symbols) == 0:
-        raise HTTPException(status_code=422, detail="No symbols provided for VaR calculation")
-
-    prices_dict = {symbol: fetch_prices(symbol) for symbol in request.symbols}
+def calculate_var_endpoint(request: PortfolioRequest):
+    if not request.symbols or not request.weights or sum(request.weights) == 0:
+        raise HTTPException(status_code=422, detail="Invalid portfolio request.")
     
-    if any(not prices for prices in prices_dict.values()):
-        raise HTTPException(status_code=422, detail="One or more securities lack sufficient data")
-
-    log_returns = {}
-    for symbol, prices in prices_dict.items():
-        price_series = np.array(list(prices.values()))
-        if len(price_series) < 2:
-            continue  # Not enough data to compute log returns
-        log_returns[symbol] = np.diff(np.log(price_series))
-
-    var_results = {}
-    for symbol, returns in log_returns.items():
-        if len(returns) == 0:
-            var_results[symbol] = {"VaR_1d_95": "N/A", "VaR_1d_99": "N/A"}
+    results: Dict[str, Dict[str, float]] = {}
+    portfolio_returns = []
+    portfolio_weights = np.array(request.weights) / 100
+    
+    returns_dict = {symbol: np.diff(np.log(fetch_prices(symbol))) for symbol in request.symbols}
+    
+    for symbol, returns in returns_dict.items():
+        if len(returns) < 2:
             continue
-
-        mean, std = np.mean(returns), np.std(returns)
-        var_1d_95 = norm.ppf(0.05, mean, std)
-        var_1d_99 = norm.ppf(0.01, mean, std)
-        var_results[symbol] = {
-            "VaR_1d_95": round(var_1d_95, 6),
-            "VaR_1d_99": round(var_1d_99, 6),
-        }
-
-    if request.weights:
-        weights = np.array(request.weights) / 100
-        portfolio_returns = np.column_stack([log_returns[symbol] for symbol in request.symbols if symbol in log_returns])
         
-        if portfolio_returns.shape[1] > 0:
-            portfolio_var_1d_95 = norm.ppf(0.05, np.mean(portfolio_returns), np.std(portfolio_returns))
-            portfolio_var_1d_99 = norm.ppf(0.01, np.mean(portfolio_returns), np.std(portfolio_returns))
-
-            var_results["Portfolio"] = {
-                "VaR_1d_95": round(portfolio_var_1d_95, 6),
-                "VaR_1d_99": round(portfolio_var_1d_99, 6),
-            }
-        else:
-            var_results["Portfolio"] = {"VaR_1d_95": "N/A", "VaR_1d_99": "N/A"}
-
-    return var_results
+        results[symbol] = {
+            "Normal_VaR_1D_95": calculate_var(returns, 0.95),
+            "Normal_VaR_1D_99": calculate_var(returns, 0.99),
+            "Hist_VaR_1D_95": historical_var(returns, 0.95),
+            "Hist_VaR_1D_99": historical_var(returns, 0.99),
+            "MonteCarlo_VaR_1D_95": monte_carlo_var(returns, 0.95),
+            "MonteCarlo_VaR_1D_99": monte_carlo_var(returns, 0.99),
+            "CornishFisher_VaR_1D_95": cornish_fisher_var(returns, 0.95),
+            "CornishFisher_VaR_1D_99": cornish_fisher_var(returns, 0.99),
+        }
+        
+        for key in list(results[symbol].keys()):
+            results[symbol][key.replace("1D", "42D")] = scale_var(results[symbol][key], 42)
+        
+        portfolio_returns.append(returns)
+    
+    if len(portfolio_returns) > 1:
+        portfolio_returns = np.column_stack(portfolio_returns)
+        portfolio_return_series = np.sum(portfolio_weights * portfolio_returns, axis=1)
+        
+        results["Portfolio"] = {
+            key: calculate_var(portfolio_return_series, 0.95) if "Normal" in key else historical_var(portfolio_return_series, 0.95)
+            for key in results[request.symbols[0]].keys()
+        }
+    
+    return results
