@@ -15,6 +15,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (optimizePortfolioButton) optimizePortfolioButton.addEventListener("click", optimizePortfolio);
 });
 
+function showTab(tabName) {
+    document.getElementById("varResultsBody").innerHTML = "<tr><td>Loading...</td></tr>";
+    calculatePortfolioVar(tabName);
+}
+
 async function fetchSecurity() {
     const query = document.getElementById("searchInput")?.value.trim();
     if (!query) return;
@@ -74,6 +79,28 @@ function updatePortfolioTable() {
             <td><button onclick="removeFromPortfolio(${index})">Remove</button></td>
         `;
     });
+}
+
+async function calculatePortfolioVar() {
+    if (portfolio.length === 0) {
+        document.getElementById("varResultsBody").innerText = "No securities in portfolio.";
+        return;
+    }
+    const symbols = portfolio.map(stock => stock.symbol);
+    const weights = portfolio.map(stock => stock.weight);
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ symbols, weights })
+        });
+        if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+        const result = await response.json();
+        displayVarResults(result);
+    } catch (error) {
+        document.getElementById("varResultsBody").innerText = "Error calculating VaR.";
+        console.error("Error fetching VaR data:", error);
+    }
 }
 
 async function optimizePortfolio() {
