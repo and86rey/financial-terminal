@@ -10,14 +10,14 @@
     <h1>Portfolio VaR & Risk Metrics</h1>
 
     <div class="description">
-        <p>Build a portfolio (up to 5 securities) and calculate Value at Risk (VaR) using different methods:</p>
+        <p>This tool allows you to build a portfolio (up to 5 securities) and calculate Value at Risk (VaR) using different methods:</p>
         <ul>
-            <li><b>Normal VaR</b> – Assumes normal distribution of returns.</li>
-            <li><b>Historical VaR</b> – Uses actual past returns.</li>
-            <li><b>Monte Carlo VaR</b> – Simulates future returns.</li>
+            <li><b>Normal VaR</b> – Assumes returns follow a normal distribution.</li>
+            <li><b>Historical VaR</b> – Based on actual past market returns.</li>
+            <li><b>Monte Carlo VaR</b> – Uses simulations for risk modeling.</li>
             <li><b>Cornish-Fisher VaR</b> – Adjusts for skewness and kurtosis.</li>
         </ul>
-        <p><b>Note:</b> VaR calculations depend on historical price data availability.</p>
+        <p><b>Note:</b> VaR calculations rely on historical price data. If data is missing, some results may not be available.</p>
     </div>
 
     <div class="search-section">
@@ -48,6 +48,16 @@
             </tr>
         </thead>
         <tbody id="varResultsBody"></tbody>
+    </table>
+
+    <h2>Historical Price Data</h2>
+    <table border="1" id="priceDataTable">
+        <thead>
+            <tr id="priceHeaderRow">
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="priceDataBody"></tbody>
     </table>
 
     <div class="disclaimer">
