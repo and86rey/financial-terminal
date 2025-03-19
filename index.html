@@ -41,15 +41,25 @@
     <button id="calculateVar">Calculate VaR</button>
 
     <h2>VaR Results</h2>
-    <table border="1" id="varResultsTable">
-        <thead>
-            <tr>
-                <th>VaR Type</th>
-                <th id="varSecuritiesHeader"></th>
-            </tr>
-        </thead>
-        <tbody id="varResultsBody"></tbody>
-    </table>
+    
+    <div class="tabs">
+        <button class="tab-button" onclick="showTab('normal')">Normal VaR</button>
+        <button class="tab-button" onclick="showTab('historical')">Historical VaR</button>
+        <button class="tab-button" onclick="showTab('montecarlo')">Monte Carlo VaR</button>
+        <button class="tab-button" onclick="showTab('cornish')">Cornish-Fisher VaR</button>
+    </div>
+    
+    <div id="varResultsContainer">
+        <table border="1" id="varResultsTable">
+            <thead>
+                <tr>
+                    <th>VaR Type</th>
+                    <th id="varSecuritiesHeader"></th>
+                </tr>
+            </thead>
+            <tbody id="varResultsBody"></tbody>
+        </table>
+    </div>
 
     <h2>Historical Price Data</h2>
     <table border="1" id="priceDataTable">
