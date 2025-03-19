@@ -7,19 +7,17 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Portfolio VaR Calculator</h1>
+    <h1>Portfolio VaR & Risk Metrics</h1>
 
     <div class="description">
-        <p>This tool allows users to build a simple investment portfolio (up to 5 securities) by searching for a company name, ticker, or ISIN. 
-        After adding securities and assigning weights, users can calculate <b>Value at Risk (VaR)</b> using four different methods:</p>
+        <p>This tool allows you to build a portfolio (up to 5 securities) and calculate Value at Risk (VaR) using different methods:</p>
         <ul>
-            <li><b>Normal Distribution VaR</b> - Assumes market returns follow a normal distribution.</li>
-            <li><b>Historical Simulation VaR</b> - Uses actual past returns to model potential losses.</li>
-            <li><b>Monte Carlo VaR</b> - Simulates thousands of future price paths to estimate risk.</li>
-            <li><b>Cornish-Fisher VaR</b> - Adjusts normal VaR to account for skewness and fat tails.</li>
+            <li><b>Normal VaR</b> – Assumes returns follow a normal distribution.</li>
+            <li><b>Historical VaR</b> – Based on actual past market returns.</li>
+            <li><b>Monte Carlo VaR</b> – Uses simulations for risk modeling.</li>
+            <li><b>Cornish-Fisher VaR</b> – Adjusts for skewness and kurtosis.</li>
         </ul>
-        <p>The tool also provides an estimate of the <b>expected annual return</b>, which is calculated as the **weighted sum of expected returns** for each security in the portfolio, based on historical performance.</p>
-        <p>By using multiple VaR models and expected return calculations, users can better understand their portfolio's risk exposure and potential return.</p>
+        <p><b>Note:</b> VaR calculations rely on historical price data. If data is missing, some results may not be available.</p>
     </div>
 
     <div class="search-section">
@@ -42,55 +40,30 @@
 
     <button id="calculateVar">Calculate VaR</button>
 
-    <div id="varResult">
-        <h2>Portfolio VaR Results</h2>
-        <table border="1">
+    <h2>VaR Results</h2>
+    <table border="1" id="varResultsTable">
+        <thead>
             <tr>
-                <th>Security</th>
-                <th>Normal VaR 1D 95%</th>
-                <th>Normal VaR 1D 99%</th>
-                <th>Hist VaR 1D 95%</th>
-                <th>Hist VaR 1D 99%</th>
-                <th>Monte Carlo VaR 1D 95%</th>
-                <th>Monte Carlo VaR 1D 99%</th>
-                <th>Cornish-Fisher VaR 1D 95%</th>
-                <th>Cornish-Fisher VaR 1D 99%</th>
-                <th>Expected Annual Return</th>
+                <th>VaR Type</th>
+                <th id="varSecuritiesHeader"></th>
             </tr>
-            <tbody id="varResultsTable"></tbody>
-            <tfoot>
-                <tr>
-                    <td><b>Portfolio</b></td>
-                    <td id="portfolioNormalVar95">N/A</td>
-                    <td id="portfolioNormalVar99">N/A</td>
-                    <td id="portfolioHistVar95">N/A</td>
-                    <td id="portfolioHistVar99">N/A</td>
-                    <td id="portfolioMonteCarloVar95">N/A</td>
-                    <td id="portfolioMonteCarloVar99">N/A</td>
-                    <td id="portfolioCornishFisherVar95">N/A</td>
-                    <td id="portfolioCornishFisherVar99">N/A</td>
-                    <td id="portfolioExpectedReturn">N/A</td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+        </thead>
+        <tbody id="varResultsBody"></tbody>
+    </table>
 
-    <h2>Historical Prices</h2>
-    <button onclick="fetchPortfolioPrices()">Show Historical Prices</button>
-    <div id="priceData"></div>
+    <h2>Historical Price Data</h2>
+    <table border="1" id="priceDataTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="priceDataBody"></tbody>
+    </table>
 
     <div class="disclaimer">
         <h3>Disclaimer</h3>
-        <p>This tool calculates Value at Risk (VaR) based on historical market data retrieved from the FMP API. 
-        It offers multiple VaR estimation methods to improve accuracy. However, all models rely on historical price movements and statistical assumptions.</p>
-        <p><b>Key limitations:</b></p>
-        <ul>
-            <li>Historical data may not reflect future market conditions.</li>
-            <li>Monte Carlo simulations are based on assumed return distributions.</li>
-            <li>Cornish-Fisher adjustments improve normal VaR but still rely on estimated skewness and kurtosis.</li>
-            <li>Expected annual return is based on historical log returns and does not guarantee future performance.</li>
-        </ul>
-        <p>VaR is a risk estimation tool and should not be the sole factor in investment decisions. Users are encouraged to conduct their own research and consider additional risk management approaches.</p>
+        <p>All calculations are based on publicly available financial data from FMP API. Results are for informational purposes only and should not be considered financial advice.</p>
     </div>
 
     <script src="script.js"></script>
