@@ -117,19 +117,20 @@ function displayVarResults(varData) {
     const varResult = document.getElementById("varResultsBody");
     if (!varResult) return;
     
-    let tableHtml = "";
-    for (const [symbol, varValues] of Object.entries(varData)) {
-        tableHtml += `<tr>
-                        <td>${symbol}</td>
-                        <td>${varValues.Normal_VaR_1D_95 || "N/A"}</td>
-                        <td>${varValues.Normal_VaR_1D_99 || "N/A"}</td>
-                        <td>${varValues.Hist_VaR_1D_95 || "N/A"}</td>
-                        <td>${varValues.Hist_VaR_1D_99 || "N/A"}</td>
-                        <td>${varValues.MonteCarlo_VaR_1D_95 || "N/A"}</td>
-                        <td>${varValues.MonteCarlo_VaR_1D_99 || "N/A"}</td>
-                        <td>${varValues.CornishFisher_VaR_1D_95 || "N/A"}</td>
-                        <td>${varValues.CornishFisher_VaR_1D_99 || "N/A"}</td>
-                    </tr>`;
+    let tableHtml = "<tr><th>VaR Type</th>";
+    for (const symbol of Object.keys(varData)) {
+        tableHtml += `<th>${symbol}</th>`;
+    }
+    tableHtml += "</tr>";
+
+    const varTypes = ["Normal_VaR_1D_95", "Normal_VaR_1D_99", "Hist_VaR_1D_95", "Hist_VaR_1D_99", "MonteCarlo_VaR_1D_95", "MonteCarlo_VaR_1D_99", "CornishFisher_VaR_1D_95", "CornishFisher_VaR_1D_99"];
+
+    for (const varType of varTypes) {
+        tableHtml += `<tr><td>${varType.replace(/_/g, ' ')}</td>`;
+        for (const symbol of Object.keys(varData)) {
+            tableHtml += `<td>${varData[symbol][varType] || "N/A"}</td>`;
+        }
+        tableHtml += "</tr>";
     }
 
     varResult.innerHTML = tableHtml;
