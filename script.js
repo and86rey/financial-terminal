@@ -2,9 +2,15 @@ let portfolio = [];
 
 document.getElementById("searchButton").addEventListener("click", function () {
     const query = document.getElementById("searchInput").value;
-    fetch(`https://financialmodelingprep.com/api/v3/search?query=${query}&apikey=your_fmp_api_key`)
+    fetch(`https://financialmodelingprep.com/api/v3/search?query=${query}&apikey=WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI`)
         .then(response => response.json())
         .then(data => {
+            if (!Array.isArray(data)) {  
+                console.error("Unexpected API response:", data);  
+                alert("Error: Unexpected API response. Please try again later.");
+                return;
+            }
+
             let resultsDiv = document.getElementById("searchResults");
             resultsDiv.innerHTML = "";
             data.forEach(company => {
@@ -99,14 +105,15 @@ function fetchPriceData() {
     tableBody.innerHTML = "";
 
     let promises = portfolio.map(stock => {
-        return fetch(`https://financialmodelingprep.com/api/v3/historical-price-full/${stock.symbol}?apikey=your_fmp_api_key`)
+        return fetch(`https://financialmodelingprep.com/api/v3/historical-price-full/${stock.symbol}?apikey=WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI`)
             .then(response => response.json())
             .then(data => {
-                if (data.historical) {
-                    return { symbol: stock.symbol, prices: data.historical.slice(0, 10) };
-                } else {
+                if (!data.historical) {
+                    console.error(`No historical data for ${stock.symbol}:`, data);
                     return { symbol: stock.symbol, prices: [] };
                 }
+
+                return { symbol: stock.symbol, prices: data.historical.slice(0, 10) };
             });
     });
 
