@@ -1,4 +1,5 @@
 const API_URL = "https://financial-terminal.onrender.com/calculate_var";
+const OPTIMIZE_API_URL = "https://financial-terminal.onrender.com/optimize_portfolio";
 const PRICE_API_URL = "https://financial-terminal.onrender.com/fetch_prices";
 const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI";
 
@@ -7,9 +8,11 @@ let portfolio = [];
 document.addEventListener("DOMContentLoaded", function () {
     const searchButton = document.getElementById("searchButton");
     const calculateVarButton = document.getElementById("calculateVar");
+    const optimizePortfolioButton = document.getElementById("optimizePortfolio");
     
     if (searchButton) searchButton.addEventListener("click", fetchSecurity);
     if (calculateVarButton) calculateVarButton.addEventListener("click", calculatePortfolioVar);
+    if (optimizePortfolioButton) optimizePortfolioButton.addEventListener("click", optimizePortfolio);
 });
 
 async function fetchSecurity() {
@@ -73,90 +76,38 @@ function updatePortfolioTable() {
     });
 }
 
-async function fetchPortfolioPrices() {
-    if (portfolio.length === 0) {
-        document.getElementById("priceDataBody").innerText = "No securities in portfolio.";
+async function optimizePortfolio() {
+    if (portfolio.length < 2) {
+        alert("At least two securities are required for optimization.");
         return;
     }
+    
     const symbols = portfolio.map(stock => stock.symbol);
     try {
-        const response = await fetch(PRICE_API_URL, {
+        const response = await fetch(OPTIMIZE_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols }) 
+            body: JSON.stringify({ symbols, weights: [] })
         });
-
+        
         if (!response.ok) throw new Error(`API request failed: ${response.status}`);
         const result = await response.json();
-
-        if (!result.prices || Object.keys(result.prices).length === 0) {
-            throw new Error("No historical data available.");
-        }
-
-        let tableHtml = "<tr><th>Date</th>";
-        symbols.forEach(symbol => tableHtml += `<th>${symbol}</th>`);
-        tableHtml += "</tr>";
-
-        const allDates = new Set();
-        symbols.forEach(symbol => {
-            if (result.prices[symbol]) {
-                Object.keys(result.prices[symbol]).forEach(date => allDates.add(date));
-            }
-        });
-
-        [...allDates].sort().reverse().forEach(date => {
-            tableHtml += `<tr><td>${date}</td>`;
-            symbols.forEach(symbol => {
-                const price = result.prices[symbol]?.[date] || "N/A";
-                tableHtml += `<td>${price}</td>`;
-            });
-            tableHtml += "</tr>";
-        });
-
-        document.getElementById("priceDataBody").innerHTML = tableHtml;
+        displayOptimalWeights(result.optimal_weights);
     } catch (error) {
-        document.getElementById("priceDataBody").innerText = "Error retrieving price data.";
-        console.error("Fetch Prices Error:", error);
+        document.getElementById("mptResultsBody").innerHTML = "<tr><td colspan='2'>Error optimizing portfolio.</td></tr>";
+        console.error("Error fetching optimized portfolio:", error);
     }
 }
 
-async function calculatePortfolioVar() {
-    if (portfolio.length === 0) {
-        document.getElementById("varResultsBody").innerText = "No securities in portfolio.";
-        return;
-    }
-    const symbols = portfolio.map(stock => stock.symbol);
-    const weights = portfolio.map(stock => stock.weight);
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols, weights })
-        });
-        if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-        const result = await response.json();
-        displayVarResults(result);
-    } catch (error) {
-        document.getElementById("varResultsBody").innerText = "Error calculating VaR.";
-        console.error("Error fetching VaR data:", error);
-    }
-}
+function displayOptimalWeights(optimalWeights) {
+    const mptResultsTable = document.getElementById("mptResultsTable");
+    const mptResultsBody = document.getElementById("mptResultsBody");
+    mptResultsBody.innerHTML = "";
 
-function displayVarResults(varData) {
-    const varResult = document.getElementById("varResultsBody");
-    varResult.innerHTML = "";
-    let tableHtml = "<tr><th>VaR Type</th>";
-    for (const symbol of Object.keys(varData)) {
-        tableHtml += `<th>${symbol}</th>`;
+    for (const [symbol, weight] of Object.entries(optimalWeights)) {
+        let row = `<tr><td>${symbol}</td><td>${(weight * 100).toFixed(2)}%</td></tr>`;
+        mptResultsBody.innerHTML += row;
     }
-    tableHtml += "</tr>";
-    const varTypes = Object.keys(varData[Object.keys(varData)[0]]);
-    for (const varType of varTypes) {
-        tableHtml += `<tr><td>${varType.replace(/_/g, ' ')}</td>`;
-        for (const symbol of Object.keys(varData)) {
-            tableHtml += `<td>${varData[symbol][varType] || "N/A"}</td>`;
-        }
-        tableHtml += "</tr>";
-    }
-    varResult.innerHTML = tableHtml;
+
+    mptResultsTable.style.display = "table";
 }
