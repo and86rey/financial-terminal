@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (calculateVarButton) calculateVarButton.addEventListener("click", calculatePortfolioVar);
 });
 
+function showTab(tabName) {
+    document.getElementById("varResultsBody").innerHTML = "<tr><td>Loading...</td></tr>";
+    calculatePortfolioVar(tabName);
+}
+
 async function fetchSecurity() {
     const query = document.getElementById("searchInput")?.value.trim();
     if (!query) return;
@@ -23,27 +28,22 @@ async function fetchSecurity() {
         const data = await response.json();
 
         if (!Array.isArray(data) || data.length === 0) {
-            const searchResults = document.getElementById("searchResults");
-            if (searchResults) searchResults.innerHTML = "<p>No results found.</p>";
+            document.getElementById("searchResults").innerHTML = "<p>No results found.</p>";
             return;
         }
 
         displaySearchResult(data[0]);
     } catch {
-        const searchResults = document.getElementById("searchResults");
-        if (searchResults) searchResults.innerHTML = "<p>Error fetching security.</p>";
+        document.getElementById("searchResults").innerHTML = "<p>Error fetching security.</p>";
     }
 }
 
 function displaySearchResult(stock) {
-    const searchResults = document.getElementById("searchResults");
-    if (searchResults) {
-        searchResults.innerHTML = `
-            <p>${stock.companyName} (${stock.symbol}) - Price: $${stock.price}</p>
-            <input type="number" id="weightInput" placeholder="Enter weight %" min="1" max="100">
-            <button onclick="addToPortfolio('${stock.symbol}', '${stock.companyName}')">Add to Portfolio</button>
-        `;
-    }
+    document.getElementById("searchResults").innerHTML = `
+        <p>${stock.companyName} (${stock.symbol}) - Price: $${stock.price}</p>
+        <input type="number" id="weightInput" placeholder="Enter weight %" min="1" max="100">
+        <button onclick="addToPortfolio('${stock.symbol}', '${stock.companyName}')">Add to Portfolio</button>
+    `;
 }
 
 function addToPortfolio(symbol, name) {
@@ -52,10 +52,7 @@ function addToPortfolio(symbol, name) {
         return;
     }
 
-    const weightInput = document.getElementById("weightInput");
-    if (!weightInput) return;
-    
-    const weight = parseFloat(weightInput.value);
+    const weight = parseFloat(document.getElementById("weightInput").value);
     if (isNaN(weight) || weight <= 0 || weight > 100) return;
 
     portfolio.push({ symbol, name, weight });
@@ -65,14 +62,11 @@ function addToPortfolio(symbol, name) {
 function removeFromPortfolio(index) {
     portfolio.splice(index, 1);
     updatePortfolioTable();
-    const varResult = document.getElementById("varResultsBody");
-    if (varResult) varResult.innerText = "Portfolio updated. Recalculate VaR.";
+    document.getElementById("varResultsBody").innerText = "Portfolio updated. Recalculate VaR.";
 }
 
 function updatePortfolioTable() {
     const table = document.getElementById("portfolioTable");
-    if (!table) return;
-    
     table.innerHTML = "";
     portfolio.forEach((stock, index) => {
         let row = table.insertRow();
@@ -84,38 +78,31 @@ function updatePortfolioTable() {
     });
 }
 
-async function calculatePortfolioVar() {
-    const varResult = document.getElementById("varResultsBody");
-    if (!varResult) return;
-    
+async function calculatePortfolioVar(activeTab) {
     if (portfolio.length === 0) {
-        varResult.innerText = "No securities in portfolio.";
+        document.getElementById("varResultsBody").innerText = "No securities in portfolio.";
         return;
     }
-
     const symbols = portfolio.map(stock => stock.symbol);
     const weights = portfolio.map(stock => stock.weight);
-
     try {
         const response = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ symbols, weights })
         });
-
         if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-
         const result = await response.json();
-        displayVarResults(result);
+        displayVarResults(result, activeTab);
     } catch (error) {
-        varResult.innerText = "Error calculating VaR.";
+        document.getElementById("varResultsBody").innerText = "Error calculating VaR.";
         console.error("Error fetching VaR data:", error);
     }
 }
 
-function displayVarResults(varData) {
+function displayVarResults(varData, activeTab) {
     const varResult = document.getElementById("varResultsBody");
-    if (!varResult) return;
+    varResult.innerHTML = "";
     
     let tableHtml = "<tr><th>VaR Type</th>";
     for (const symbol of Object.keys(varData)) {
@@ -123,8 +110,14 @@ function displayVarResults(varData) {
     }
     tableHtml += "</tr>";
 
-    const varTypes = ["Normal_VaR_1D_95", "Normal_VaR_1D_99", "Hist_VaR_1D_95", "Hist_VaR_1D_99", "MonteCarlo_VaR_1D_95", "MonteCarlo_VaR_1D_99", "CornishFisher_VaR_1D_95", "CornishFisher_VaR_1D_99"];
+    const varCategories = {
+        normal: ["Normal_VaR_1D_95", "Normal_VaR_1D_99", "Normal_VaR_42D_95", "Normal_VaR_42D_99"],
+        historical: ["Hist_VaR_1D_95", "Hist_VaR_1D_99", "Hist_VaR_42D_95", "Hist_VaR_42D_99"],
+        montecarlo: ["MonteCarlo_VaR_1D_95", "MonteCarlo_VaR_1D_99", "MonteCarlo_VaR_42D_95", "MonteCarlo_VaR_42D_99"],
+        cornish: ["CornishFisher_VaR_1D_95", "CornishFisher_VaR_1D_99", "CornishFisher_VaR_42D_95", "CornishFisher_VaR_42D_99"]
+    };
 
+    const varTypes = varCategories[activeTab] || [];
     for (const varType of varTypes) {
         tableHtml += `<tr><td>${varType.replace(/_/g, ' ')}</td>`;
         for (const symbol of Object.keys(varData)) {
