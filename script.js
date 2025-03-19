@@ -65,7 +65,7 @@ function addToPortfolio(symbol, name) {
 function removeFromPortfolio(index) {
     portfolio.splice(index, 1);
     updatePortfolioTable();
-    const varResult = document.getElementById("varResult");
+    const varResult = document.getElementById("varResultsBody");
     if (varResult) varResult.innerText = "Portfolio updated. Recalculate VaR.";
 }
 
@@ -85,7 +85,7 @@ function updatePortfolioTable() {
 }
 
 async function calculatePortfolioVar() {
-    const varResult = document.getElementById("varResult");
+    const varResult = document.getElementById("varResultsBody");
     if (!varResult) return;
     
     if (portfolio.length === 0) {
@@ -114,23 +114,10 @@ async function calculatePortfolioVar() {
 }
 
 function displayVarResults(varData) {
-    const varResult = document.getElementById("varResult");
+    const varResult = document.getElementById("varResultsBody");
     if (!varResult) return;
     
-    let tableHtml = "<h2>Portfolio VaR Results</h2>";
-    tableHtml += `<table border="1">
-                    <tr>
-                        <th>Security</th>
-                        <th>VaR 1D 95%</th>
-                        <th>VaR 1D 99%</th>
-                        <th>Hist. VaR 1D 95%</th>
-                        <th>Hist. VaR 1D 99%</th>
-                        <th>Monte Carlo 1D 95%</th>
-                        <th>Monte Carlo 1D 99%</th>
-                        <th>Cornish-Fisher 1D 95%</th>
-                        <th>Cornish-Fisher 1D 99%</th>
-                    </tr>`;
-
+    let tableHtml = "";
     for (const [symbol, varValues] of Object.entries(varData)) {
         tableHtml += `<tr>
                         <td>${symbol}</td>
@@ -145,6 +132,5 @@ function displayVarResults(varData) {
                     </tr>`;
     }
 
-    tableHtml += "</table>";
     varResult.innerHTML = tableHtml;
 }
