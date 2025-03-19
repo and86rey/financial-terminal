@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import numpy as np
+import scipy.optimize as sco
 from scipy.stats import norm
 from pydantic import BaseModel
 from typing import List, Dict
@@ -38,39 +39,24 @@ def fetch_prices(symbol):
     
     return []
 
-def scale_var(var_1d, days=42):
-    return round(var_1d * np.sqrt(days), 6) if isinstance(var_1d, (int, float)) else "N/A"
+def calculate_portfolio_metrics(returns, weights):
+    portfolio_return = np.sum(np.mean(returns, axis=1) * weights)
+    portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(np.cov(returns), weights)))
+    sharpe_ratio = portfolio_return / portfolio_volatility if portfolio_volatility > 0 else 0
+    return portfolio_return, portfolio_volatility, sharpe_ratio
 
-def calculate_var(returns, confidence_level):
-    mean, std = np.mean(returns), np.std(returns)
-    var_1d = norm.ppf(1 - confidence_level, mean, std)
-    return round(var_1d, 6) if std > 0 else "N/A"
-
-def historical_var(returns, confidence_level):
-    if len(returns) > 0:
-        var_1d = np.percentile(returns, 100 * (1 - confidence_level))
-        return round(var_1d, 6)
-    return "N/A"
-
-def monte_carlo_var(returns, confidence_level):
-    try:
-        simulated_returns = np.random.choice(returns, 10000, replace=True)
-        var_1d = np.percentile(simulated_returns, 100 * (1 - confidence_level))
-        return round(var_1d, 6)
-    except:
-        return "N/A"
-
-def cornish_fisher_var(returns, confidence_level):
-    try:
-        mean, std = np.mean(returns), np.std(returns)
-        z = norm.ppf(1 - confidence_level)
-        skew = np.mean((returns - mean) ** 3) / std**3
-        kurt = np.mean((returns - mean) ** 4) / std**4
-        adj_z = z + (z**2 - 1) * skew / 6 + (z**3 - 3 * z) * (kurt - 3) / 24
-        var_1d = mean + adj_z * std
-        return round(var_1d, 6)
-    except:
-        return "N/A"
+def optimize_portfolio(returns):
+    num_assets = returns.shape[0]
+    args = (returns,)
+    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+    bounds = tuple((0, 1) for _ in range(num_assets))
+    init_guess = num_assets * [1. / num_assets]
+    
+    def min_func_sharpe(weights, returns):
+        return -calculate_portfolio_metrics(returns, weights)[2]  # Minimize negative Sharpe Ratio
+    
+    opt_result = sco.minimize(min_func_sharpe, init_guess, args=args, method='SLSQP', bounds=bounds, constraints=constraints)
+    return opt_result.x if opt_result.success else None
 
 @app.post("/calculate_var")
 def calculate_var_endpoint(request: PortfolioRequest):
@@ -88,19 +74,9 @@ def calculate_var_endpoint(request: PortfolioRequest):
             continue
         
         results[symbol] = {
-            "Normal_VaR_1D_95": calculate_var(returns, 0.95),
-            "Normal_VaR_1D_99": calculate_var(returns, 0.99),
-            "Hist_VaR_1D_95": historical_var(returns, 0.95),
-            "Hist_VaR_1D_99": historical_var(returns, 0.99),
-            "MonteCarlo_VaR_1D_95": monte_carlo_var(returns, 0.95),
-            "MonteCarlo_VaR_1D_99": monte_carlo_var(returns, 0.99),
-            "CornishFisher_VaR_1D_95": cornish_fisher_var(returns, 0.95),
-            "CornishFisher_VaR_1D_99": cornish_fisher_var(returns, 0.99),
+            "Normal_VaR_1D_95": norm.ppf(0.95, np.mean(returns), np.std(returns)),
+            "Normal_VaR_1D_99": norm.ppf(0.99, np.mean(returns), np.std(returns))
         }
-        
-        for key in list(results[symbol].keys()):
-            results[symbol][key.replace("1D", "42D")] = scale_var(results[symbol][key], 42)
-        
         portfolio_returns.append(returns)
     
     if len(portfolio_returns) > 1:
@@ -108,8 +84,28 @@ def calculate_var_endpoint(request: PortfolioRequest):
         portfolio_return_series = np.sum(portfolio_weights * portfolio_returns, axis=1)
         
         results["Portfolio"] = {
-            key: calculate_var(portfolio_return_series, 0.95) if "Normal" in key else historical_var(portfolio_return_series, 0.95)
-            for key in results[request.symbols[0]].keys()
+            "Normal_VaR_1D_95": norm.ppf(0.95, np.mean(portfolio_return_series), np.std(portfolio_return_series)),
+            "Normal_VaR_1D_99": norm.ppf(0.99, np.mean(portfolio_return_series), np.std(portfolio_return_series))
         }
     
     return results
+
+@app.post("/optimize_portfolio")
+def optimize_portfolio_endpoint(request: PortfolioRequest):
+    if not request.symbols or len(request.symbols) < 2:
+        raise HTTPException(status_code=422, detail="At least two assets are required for optimization.")
+    
+    returns = []
+    for symbol in request.symbols:
+        prices = fetch_prices(symbol)
+        if len(prices) < 2:
+            raise HTTPException(status_code=400, detail=f"Not enough data for {symbol}")
+        returns.append(np.diff(np.log(prices)))
+    
+    returns = np.array(returns)
+    optimal_weights = optimize_portfolio(returns)
+    
+    if optimal_weights is None:
+        raise HTTPException(status_code=500, detail="Optimization failed.")
+    
+    return {"optimal_weights": {symbol: round(w, 4) for symbol, w in zip(request.symbols, optimal_weights)}}
