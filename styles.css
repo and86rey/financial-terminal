@@ -20,11 +20,13 @@ h1 {
     font-size: 1.8em;
     margin: 10px 0;
 }
+
 h2 {
     color: #fff;
     font-size: 1.4em;
     margin: 10px 0;
 }
+
 h3 {
     color: #f5a623;
     font-size: 1.2em;
@@ -37,6 +39,7 @@ h3 {
     margin: 10px 0;
     text-align: center;
 }
+
 input[type="text"] {
     padding: 8px;
     width: 70%;
@@ -46,6 +49,7 @@ input[type="text"] {
     color: #fff;
     font-size: 1em;
 }
+
 button {
     padding: 8px 15px;
     background-color: #f5a623;
@@ -55,6 +59,7 @@ button {
     font-size: 1em;
     margin: 0 5px;
 }
+
 button:hover {
     background-color: #d9911e;
 }
@@ -63,7 +68,7 @@ button:hover {
 .results-section {
     background-color: #1a1a1a;
     padding: 10px;
-    border-radius: 0;
+    border-radius: 5px;
     margin-top: 10px;
 }
 
@@ -72,23 +77,26 @@ button:hover {
     margin-top: 20px;
     text-align: center;
 }
+
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
 }
+
 th, td {
     border: 1px solid #fff;
     padding: 8px;
     text-align: center;
 }
+
 th {
     background-color: #f5a623;
     color: #000;
 }
 
 /* VaR Results */
-#varResult {
+#varResultsTable {
     margin-top: 20px;
     padding: 10px;
     text-align: center;
@@ -96,6 +104,10 @@ th {
     border-radius: 5px;
     font-weight: bold;
     color: #fff;
+}
+
+#varResultsTable th:first-child {
+    width: 200px;
 }
 
 /* Graph Section */
@@ -107,6 +119,7 @@ th {
     border-radius: 8px;
     text-align: center;
 }
+
 canvas {
     width: 100% !important;
     height: 250px !important;
