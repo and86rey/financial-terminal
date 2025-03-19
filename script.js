@@ -11,13 +11,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const optimizePortfolioButton = document.getElementById("optimizePortfolio");
     
     if (searchButton) searchButton.addEventListener("click", fetchSecurity);
-    if (calculateVarButton) calculateVarButton.addEventListener("click", calculatePortfolioVar);
+    if (calculateVarButton) calculateVarButton.addEventListener("click", () => calculatePortfolioVar());
     if (optimizePortfolioButton) optimizePortfolioButton.addEventListener("click", optimizePortfolio);
 });
 
 function showTab(tabName) {
     document.getElementById("varResultsBody").innerHTML = "<tr><td>Loading...</td></tr>";
-    calculatePortfolioVar(tabName);
+    calculatePortfolioVar();
 }
 
 async function fetchSecurity() {
