@@ -81,6 +81,18 @@ function updatePortfolioTable() {
     });
 }
 
+function displayVarResults(result) {
+    let varResultsBody = document.getElementById("varResultsBody");
+    varResultsBody.innerHTML = "";
+
+    for (const [key, values] of Object.entries(result)) {
+        let row = `<tr><td>${key}</td>`;
+        row += `<td>${values.Normal_VaR_1D_95?.toFixed(4) || "N/A"}</td>`;
+        row += `<td>${values.Normal_VaR_1D_99?.toFixed(4) || "N/A"}</td></tr>`;
+        varResultsBody.innerHTML += row;
+    }
+}
+
 async function calculatePortfolioVar() {
     if (portfolio.length === 0) {
         document.getElementById("varResultsBody").innerText = "No securities in portfolio.";
@@ -101,40 +113,4 @@ async function calculatePortfolioVar() {
         document.getElementById("varResultsBody").innerText = "Error calculating VaR.";
         console.error("Error fetching VaR data:", error);
     }
-}
-
-async function optimizePortfolio() {
-    if (portfolio.length < 2) {
-        alert("At least two securities are required for optimization.");
-        return;
-    }
-    
-    const symbols = portfolio.map(stock => stock.symbol);
-    try {
-        const response = await fetch(OPTIMIZE_API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symbols, weights: [] })
-        });
-        
-        if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-        const result = await response.json();
-        displayOptimalWeights(result.optimal_weights);
-    } catch (error) {
-        document.getElementById("mptResultsBody").innerHTML = "<tr><td colspan='2'>Error optimizing portfolio.</td></tr>";
-        console.error("Error fetching optimized portfolio:", error);
-    }
-}
-
-function displayOptimalWeights(optimalWeights) {
-    const mptResultsTable = document.getElementById("mptResultsTable");
-    const mptResultsBody = document.getElementById("mptResultsBody");
-    mptResultsBody.innerHTML = "";
-
-    for (const [symbol, weight] of Object.entries(optimalWeights)) {
-        let row = `<tr><td>${symbol}</td><td>${(weight * 100).toFixed(2)}%</td></tr>`;
-        mptResultsBody.innerHTML += row;
-    }
-
-    mptResultsTable.style.display = "table";
 }
