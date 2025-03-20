@@ -4,20 +4,43 @@ const PRICE_API_URL = "https://financial-terminal.onrender.com/fetch_prices";
 const FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI";
 
 let portfolio = [];
+let comments = [];
 
 document.addEventListener("DOMContentLoaded", function () {
     const searchButton = document.getElementById("searchButton");
     const calculateVarButton = document.getElementById("calculateVar");
     const optimizePortfolioButton = document.getElementById("optimizePortfolio");
+    const submitCommentButton = document.getElementById("submitComment");
     
     if (searchButton) searchButton.addEventListener("click", fetchSecurity);
     if (calculateVarButton) calculateVarButton.addEventListener("click", () => calculatePortfolioVar());
     if (optimizePortfolioButton) optimizePortfolioButton.addEventListener("click", optimizePortfolio);
+    if (submitCommentButton) submitCommentButton.addEventListener("click", submitComment);
 });
 
 function showTab(tabName) {
     document.getElementById("varResultsBody").innerHTML = "<tr><td>Loading...</td></tr>";
     calculatePortfolioVar();
+}
+
+function submitComment() {
+    const commentInput = document.getElementById("commentInput");
+    const commentText = commentInput.value.trim();
+    if (!commentText) return;
+    
+    comments.push(commentText);
+    updateCommentSection();
+    commentInput.value = "";
+}
+
+function updateCommentSection() {
+    const commentList = document.getElementById("commentList");
+    commentList.innerHTML = "";
+    comments.forEach(comment => {
+        let commentItem = document.createElement("p");
+        commentItem.textContent = comment;
+        commentList.appendChild(commentItem);
+    });
 }
 
 async function fetchSecurity() {
