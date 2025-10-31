@@ -62,7 +62,7 @@ async function fetchSecurity() {
     }
 
     // --- Fetch security profile from FMP ---
-    const url = `https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`;
+    const url = `https://financialmodelingprep.com/api/v4/profile/${symbol}?apikey=${FMP_API_KEY}`;
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
